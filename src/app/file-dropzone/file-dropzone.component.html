@@ -1,0 +1,6 @@
+<ngx-dropzone (change)="onSelect($event)" [multiple]="true" accept=".jar">
+  <ngx-dropzone-label class="p-4">Upload your mod(s)</ngx-dropzone-label>
+  <ngx-dropzone-preview *ngFor="let f of files" [removable]="true" (removed)="onRemove(f)" class="bg-gray-100" style="background-image: none">
+    <ngx-dropzone-label>{{ f.name }}</ngx-dropzone-label>
+  </ngx-dropzone-preview>
+</ngx-dropzone>
