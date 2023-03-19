@@ -1,17 +1,22 @@
-<div class="flex flex-col items-center w-full">
-  <div class="mt-10">
-    <app-title/>
+<div class="flex flex-col justify-between items-center h-screen w-full">
+  <div class="flex flex-col items-center w-full">
+    <div class="mt-10">
+      <app-title/>
+    </div>
+    <div class="my-5">
+      <app-description/>
+    </div>
+    <div class="my-3 flex gap-x-4">
+      <app-loader-selector/>
+      <app-version-selector/>
+    </div>
+    <div>
+      <app-file-dropzone/>
+    </div>
+    <div class="my-3">
+      <app-mod-panel/>
+    </div>
   </div>
-  <div class="my-5">
-    <app-description/>
-  </div>
-  <div class="my-3">
-    <app-version-selector/>
-  </div>
-  <div>
-    <app-file-dropzone/>
-  </div>
-  <div class="my-3">
-    <app-start-button/>
-  </div>
+  <app-footer class="w-full"/>
 </div>
+

@@ -1,5 +1,7 @@
-import {Component, ElementRef, HostListener, ViewChild} from '@angular/core';
+import {Component, ElementRef, HostListener, OnDestroy, ViewChild} from '@angular/core';
 import {trigger, style, animate, transition} from '@angular/animations';
+import {Subscription} from "rxjs";
+import {VersionsService, Version} from "../services/versions.service";
 
 @Component({
   selector: 'app-version-selector',
@@ -12,16 +14,22 @@ import {trigger, style, animate, transition} from '@angular/animations';
     ])
   ]
 })
-export class VersionSelectorComponent {
-  versions: Version[];
+export class VersionSelectorComponent implements OnDestroy {
+  versions!: Version[];
   showDropdown: boolean;
+  subscription!: Subscription;
 
-  constructor() {
-    this.versions = ['1.19.4', '1.19.3', '1.19.2', '1.19.1', '1.19.0'].map((v, i) => ({version: v, selected: i === 0}));
+  constructor(private versionsService: VersionsService) {
     this.showDropdown = false;
   }
 
-  get version(): Version {
+  ngOnInit() {
+    this.subscription = this.versionsService.versions.subscribe(versions => {
+      this.versions = versions;
+    });
+  }
+
+  get version(): Version | undefined {
     return this.versions.find(v => v.selected)!;
   }
 
@@ -30,8 +38,11 @@ export class VersionSelectorComponent {
   }
 
   onSelect(version: Version) {
+    if (!this.version) return;
     this.version.selected = false;
     version.selected = true;
+    this.versionsService.setVersions(this.versions);
+    this.showDropdown = false;
   }
 
   @ViewChild('dropdown', { static: false }) dropdownRef: ElementRef | undefined;
@@ -43,11 +54,10 @@ export class VersionSelectorComponent {
       this.showDropdown = false;
     }
   }
-}
 
-interface Version {
-  version: string;
-  selected: boolean;
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
+  }
 }
 
 

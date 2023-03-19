@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, EventEmitter, Output} from '@angular/core';
 
 @Component({
   selector: 'app-start-button',
@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrls: ['./start-button.component.css']
 })
 export class StartButtonComponent {
-
+  @Output() notify = new EventEmitter();
 }
