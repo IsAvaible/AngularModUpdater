@@ -1,12 +1,12 @@
 import {Component, ElementRef, HostListener, OnDestroy, ViewChild} from '@angular/core';
-import {trigger, style, animate, transition} from '@angular/animations';
+import {animate, style, transition, trigger} from "@angular/animations";
+import {Loader, LoaderService} from "../../services/loader.service";
 import {Subscription} from "rxjs";
-import {VersionsService, Version} from "../services/versions.service";
 
 @Component({
-  selector: 'app-version-selector',
-  templateUrl: './version-selector.component.html',
-  styleUrls: ['./version-selector.component.css'],
+  selector: 'app-loader-selector',
+  templateUrl: './loader-selector.component.html',
+  styleUrls: ['./loader-selector.component.css'],
   animations: [
     trigger('openClose', [
       transition(':enter', [style({opacity: 0, transform: 'scale(0.95)'}), animate('100ms ease-out', style({opacity: 1, transform: 'scale(1)'}))]),
@@ -14,34 +14,28 @@ import {VersionsService, Version} from "../services/versions.service";
     ])
   ]
 })
-export class VersionSelectorComponent implements OnDestroy {
-  versions!: Version[];
+export class LoaderSelectorComponent implements OnDestroy {
+  loaderValues = Object.values(Loader);
+  loader!: Loader;
   showDropdown: boolean;
   subscription!: Subscription;
 
-  constructor(private versionsService: VersionsService) {
+  constructor(private loaderService: LoaderService) {
     this.showDropdown = false;
   }
 
   ngOnInit() {
-    this.subscription = this.versionsService.versions.subscribe(versions => {
-      this.versions = versions;
+    this.subscription = this.loaderService.loader.subscribe(loader => {
+      this.loader = loader;
     });
-  }
-
-  get version(): Version | undefined {
-    return this.versions.find(v => v.selected)!;
   }
 
   onClick() {
     this.showDropdown = !this.showDropdown;
   }
 
-  onSelect(version: Version) {
-    if (!this.version) return;
-    this.version.selected = false;
-    version.selected = true;
-    this.versionsService.setVersions(this.versions);
+  onSelect(loader: string) {
+    this.loaderService.setLoader(loader as Loader);
     this.showDropdown = false;
   }
 
@@ -59,5 +53,3 @@ export class VersionSelectorComponent implements OnDestroy {
     this.subscription.unsubscribe();
   }
 }
-
-

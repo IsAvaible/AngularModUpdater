@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {FilesService} from "../services/files.service";
+import {FilesService} from "../../services/files.service";
 import {Subscription} from "rxjs";
 import Swal from 'sweetalert2';
 

@@ -1,0 +1,68 @@
+<div class="flex flex-col items-center px-10">
+  <app-start-button (notify)="updateMods()"/>
+
+  <div class="flex flex-col mt-4 max-w-7xl">
+    <div class="flex justify-center">
+      <p *ngIf="loading" class="animate-pulse dark:text-slate-100">Loading...</p>
+    </div>
+    <section *ngIf="availableMods.length > 0" class="space-y-4">
+      <div class="flex justify-between items-center">
+        <p class="text-lg font-bold dark:text-slate-100">Mods which have releases for the selected version</p>
+        <button class="bg-white shadow-md hover:shadow-lg text-gray-700 dark:bg-slate-800 dark:text-slate-100 rounded-md aspect-square h-10 flex items-center justify-center" [ngSwitch]="availableModsView" (click)="availableModsView = availableModsView == View.List ? View.Grid : View.List">
+          <svg *ngSwitchCase="View.List" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+          </svg>
+          <svg *ngSwitchCase="View.Grid" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 20.4v-5.8a.6.6 0 01.6-.6h5.8a.6.6 0 01.6.6v5.8a.6.6 0 01-.6.6h-5.8a.6.6 0 01-.6-.6zM3 20.4v-5.8a.6.6 0 01.6-.6h5.8a.6.6 0 01.6.6v5.8a.6.6 0 01-.6.6H3.6a.6.6 0 01-.6-.6zM14 9.4V3.6a.6.6 0 01.6-.6h5.8a.6.6 0 01.6.6v5.8a.6.6 0 01-.6.6h-5.8a.6.6 0 01-.6-.6zM3 9.4V3.6a.6.6 0 01.6-.6h5.8a.6.6 0 01.6.6v5.8a.6.6 0 01-.6.6H3.6a.6.6 0 01-.6-.6z" />
+          </svg>
+        </button>
+      </div>
+
+      <div [class]="availableModsView === View.List ? 'flex flex-col max-w-7xl space-y-4 rounded-md justify-around' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 justify-between gap-y-4'">
+        <app-mod-card *ngFor="let mod of availableMods | orderBy: '[0].title':false:true" [versions]="mod.versions" [project]="mod.project" [queryHash]="mod.queryHash" [view]="availableModsView"/>
+      </div>
+      <div class="flex justify-between bg-white rounded-lg px-4 py-2 dark:bg-slate-900 dark:text-slate-300">
+        <span class="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 dark:text-slate-100">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+          </svg>
+          <button (click)="linkAll()" class="flex gap-x-2 items-center bg-white rounded-lg py-1 px-2 hover:underline dark:text-slate-200  dark:bg-slate-900">
+            Open All
+          </button>
+        </span>
+              <span class="flex items-center">
+          <button (click)="downloadAll()" class="flex gap-x-2 items-center bg-white rounded-lg py-1 px-2 hover:underline dark:text-slate-200 dark:bg-slate-900">
+            Download All
+          </button>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 dark:text-slate-100">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m-6 3.75l3 3m0 0l3-3m-3 3V1.5m6 9h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5a2.25 2.25 0 01-2.25-2.25v-.75" />
+          </svg>
+        </span>
+      </div>
+    </section>
+    <section *ngIf="unavailableMods.length > 0">
+      <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">Mods which have no releases for the selected version</p>
+      <div class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white ring-yellow-100 dark:ring-yellow-300 gap-y-2 p-2 rounded-lg justify-between items-center">
+        <a href="https://modrinth.com/mod/{{mod.project.slug}}" target="_blank" referrerpolicy="no-referrer" *ngFor="let mod of unavailableMods | orderBy : 'project.title':false:true" class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2">
+          {{ mod.project.title }}
+        </a>
+      </div>
+    </section>
+    <section *ngIf="invalidLoaderMods.length > 0">
+      <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">Mods which are not available for the selected mod-loader</p>
+      <div class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white ring-yellow-100 dark:ring-yellow-300 gap-y-2 p-2 rounded-lg justify-between items-center">
+        <a href="https://modrinth.com/mod/{{mod.project.slug}}" target="_blank" referrerpolicy="no-referrer" *ngFor="let mod of invalidLoaderMods | orderBy : 'project.title':false:true" class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2">
+          {{ mod.project.title }}
+        </a>
+      </div>
+    </section>
+    <section *ngIf="unresolvedMods.length > 0">
+      <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">Mods that the site was not able to fetch</p>
+      <div class="w-full flex flex-row flex-wrap ring-2 bg-white dark:bg-slate-800 ring-red-100 dark:ring-red-400 p-2 gap-y-2 rounded-lg justify-between items-center">
+        <p *ngFor="let mod of unresolvedMods | orderBy" class="text-sm font-medium text-gray-700 bg-red-100 dark:bg-red-300 px-2 py-1 rounded-lg mr-2">
+          {{ mod.file.name }}
+        </p>
+      </div>
+    </section>
+  </div>
+</div>

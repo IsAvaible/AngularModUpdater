@@ -4,7 +4,7 @@ import {HttpClient} from "@angular/common/http";
 
 @Injectable()
 export class VersionsService {
-  private versions$ = new BehaviorSubject<Version[]>([]);
+  private versions$ = new BehaviorSubject<MinecraftVersion[]>([]);
   versions = this.versions$.asObservable();
 
   constructor(private http: HttpClient) {
@@ -17,13 +17,13 @@ export class VersionsService {
     });
   }
 
-  setVersions(versions: Version[]) {
+  setVersions(versions: MinecraftVersion[]) {
     this.versions$.next(versions);
   }
 }
 
 
-export interface Version {
+export interface MinecraftVersion {
   version: string;
   selected: boolean;
 }
