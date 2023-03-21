@@ -34,11 +34,11 @@ export class FileDropzoneComponent implements OnInit, OnDestroy {
       console.log("The following files were skipped because they were duplicates: " + duplicateFiles.join(", "));
       Swal.fire({
         position: 'top-end',
-        icon: 'error',
+        icon: 'warning',
         title: `Skipped ${duplicateFiles.length} duplicate file` + (duplicateFiles.length > 1 ? "s" : ""),
         showConfirmButton: false,
-        timer: 1200,
-        backdrop: `rgba(0,0,0,0.1)`
+        timer: 2000,
+        backdrop: false
       })
     }
     this.filesService.setFiles(this.files);

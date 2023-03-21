@@ -6,7 +6,7 @@
       <p *ngIf="loading" class="animate-pulse dark:text-slate-100">Loading...</p>
     </div>
     <section *ngIf="availableMods.length > 0" class="space-y-4">
-      <div class="flex justify-between items-center">
+      <div class="flex justify-between items-center space-x-3">
         <p class="text-lg font-bold dark:text-slate-100">Mods which have releases for the selected version</p>
         <button class="bg-white shadow-md hover:shadow-lg text-gray-700 dark:bg-slate-800 dark:text-slate-100 rounded-md aspect-square h-10 flex items-center justify-center" [ngSwitch]="availableModsView" (click)="availableModsView = availableModsView == View.List ? View.Grid : View.List">
           <svg *ngSwitchCase="View.List" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -19,7 +19,7 @@
       </div>
 
       <div [class]="availableModsView === View.List ? 'flex flex-col max-w-7xl space-y-4 rounded-md justify-around' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 justify-between gap-y-4'">
-        <app-mod-card *ngFor="let mod of availableMods | orderBy: '[0].title':false:true" [versions]="mod.versions" [project]="mod.project" [queryHash]="mod.queryHash" [view]="availableModsView"/>
+        <app-mod-card *ngFor="let mod of availableMods | orderBy: 'project.title':false:true" [versions]="mod.versions" [project]="mod.project" [queryHash]="mod.queryHash" [view]="availableModsView"/>
       </div>
       <div class="flex justify-between bg-white rounded-lg px-4 py-2 dark:bg-slate-900 dark:text-slate-300">
         <span class="flex items-center">
@@ -60,7 +60,7 @@
       <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">Mods that the site was not able to fetch</p>
       <div class="w-full flex flex-row flex-wrap ring-2 bg-white dark:bg-slate-800 ring-red-100 dark:ring-red-400 p-2 gap-y-2 rounded-lg justify-between items-center">
         <p *ngFor="let mod of unresolvedMods | orderBy" class="text-sm font-medium text-gray-700 bg-red-100 dark:bg-red-300 px-2 py-1 rounded-lg mr-2">
-          {{ mod.file.name }}
+          {{ mod.file.name }} - {{ mod.annotation ? mod.annotation.error.status : 'file read failed' }}
         </p>
       </div>
     </section>

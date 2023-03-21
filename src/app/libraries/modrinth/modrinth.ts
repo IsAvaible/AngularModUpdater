@@ -1,6 +1,7 @@
-import {Version, Project} from "./types.modrinth";
+import {Version, Project, AnnotatedError} from "./types.modrinth";
 import {catchError, Observable, of} from "rxjs";
 import {HttpClient} from "@angular/common/http";
+import Swal from "sweetalert2";
 
 
 export class Modrinth {
@@ -11,6 +12,7 @@ export class Modrinth {
   private _rateLimit_Remaining: number = 300;  // Requests remaining
   private _rateLimit_Reset: number = 0;  // Seconds until the rate limit resets
   private sha1 = require('js-sha1');  // SHA1 hashing function
+  private intervalRequestStart: Date | null = null;
 
   get rateLimit_Limit(): number {
     return this._rateLimit_Limit;
@@ -29,46 +31,94 @@ export class Modrinth {
    * Returns an error handler, that handles the rate limit of the Modrinth API
    * @param result Default value to return if the request fails
    */
-  private errorHandler<T>(result?: T) {
+  private errorHandler<T>() {
     return (error: any): Observable<T> => {
-      console.log(error);
-      let responseHeaders = error.headers;
-      this._rateLimit_Limit = parseInt(<string>responseHeaders.get('X-RateLimit-Limit'));
-      this._rateLimit_Remaining = parseInt(<string>responseHeaders.get('X-RateLimit-Remaining'));
-      this._rateLimit_Reset = parseInt(<string>responseHeaders.get('X-RateLimit-Reset'));
-
-      if (this._rateLimit_Remaining == 0) {
-        console.log(`Rate limit reached. Waiting for ${this._rateLimit_Reset} seconds before retrying.`)
-        new Promise(() => setTimeout(
-          () => {
-            return this.http.get<Project>(error.url, {headers: this.headers}).pipe(this.errorHandler(result as T))
+      if (this._rateLimit_Remaining == 0 || error.status == 0 && this._rateLimit_Remaining != -1) {
+        let statusCase = this._rateLimit_Remaining != 0;
+        let timerInterval: any;
+        if (statusCase) this._rateLimit_Reset = 30;
+        this._rateLimit_Remaining = -1;
+        console.log(`Rate limit reached. Wait for ${this._rateLimit_Reset} seconds before retrying.`);
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Rate Limit Exceeded',
+          html: `Modrinths rate limit was reached, please try again in <b>${this._rateLimit_Reset}</b> seconds${statusCase ? ' (approximated)':''}.`,
+          showConfirmButton: false,
+          timer: this._rateLimit_Reset * 1000,
+          timerProgressBar: true,
+          backdrop: false,
+          didOpen: () => {
+            const b: HTMLElement = Swal.getHtmlContainer()!.querySelector('b')!;
+            timerInterval = setInterval(() => {
+              b.textContent = String(Math.round(Swal.getTimerLeft()! / 1000));
+            }, 100)
           },
-          (this._rateLimit_Reset + 1) * 1000
-        )).then((value) => {
-          return value
-        });
+          willClose: () => {
+            clearInterval(timerInterval)
+          }
+        })
+        setTimeout(() => this._rateLimit_Remaining = 300, 15000)
       }
-      return of(result as T);
+      return of({error: error} as T);
+
+      // Not able to get the headers, because of CORS issues
+      // let responseHeaders = error.headers;
+      // this._rateLimit_Limit = parseInt(<string>responseHeaders.get('X-RateLimit-Limit'));
+      // this._rateLimit_Remaining = parseInt(<string>responseHeaders.get('X-RateLimit-Remaining'));
+      // this._rateLimit_Reset = parseInt(<string>responseHeaders.get('X-RateLimit-Reset'));
+      //
+      // if (this._rateLimit_Remaining == 0) {
+      //   console.log(`Rate limit reached. Waiting for ${this._rateLimit_Reset} seconds before retrying.`)
+      //   return this.http.get<T>(error.url, {headers: this.headers}).pipe(this.errorHandler<T>());
+      // } else {
+      //   return of({error: error} as T);
+      // }
     };
   }
 
-  public getProject(slug: string): Observable<Project | null> {
-    const url =`${this.modrinthAPIUrl}/project/${slug}`
-    return this.http.get<Project>(url,{headers: this.headers}).pipe(catchError(this.errorHandler(null)));
+  private adjustRateLimit() {
+    if (this._rateLimit_Remaining > 0) this._rateLimit_Remaining -= 1;
+    if (this.intervalRequestStart != null) return
+    const temp = new Date();
+    this.intervalRequestStart = temp;
+    this._rateLimit_Reset = 60;
+    setInterval(() => {
+      if (this._rateLimit_Reset == 0 && this.intervalRequestStart == temp) {
+        this.intervalRequestStart = null;
+        this._rateLimit_Remaining = 300;
+        // @ts-ignore
+        clearInterval(this);
+      } else {
+        this._rateLimit_Reset -= 1;
+      }
+    }, 1000);
   }
 
-  public getVersionFromSlug(slug: string, version: string, loaders: string[]): Observable<Version[]> {
+  public getProject(slug: string): Observable<Project | AnnotatedError> {
+    this.adjustRateLimit();
+    const url =`${this.modrinthAPIUrl}/project/${slug}`;
+    return this.http.get<Project>(url,{headers: this.headers}).pipe(catchError(this.errorHandler<Project | AnnotatedError>()));
+  }
+
+  public getVersionFromSlug(slug: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
+    this.adjustRateLimit();
     const url = `${this.modrinthAPIUrl}/project/${slug}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase())[0]}"]` : "")
-    return this.http.get<Version[]>(url, {headers: this.headers}).pipe(catchError(this.errorHandler([])));
+    return this.http.get<Version[]>(url, {headers: this.headers}).pipe(catchError(this.errorHandler<Version[] | AnnotatedError>()));
   }
 
-  public getVersionFromHash(hash: string): Observable<Version[]> {
-    const url = `${this.modrinthAPIUrl}/version/${hash}`;
-    return this.http.get<Version[]>(url, {headers: this.headers}).pipe(catchError(this.errorHandler([])));
+  public getVersionFromHash(hash: string): Observable<Version | AnnotatedError> {
+    this.adjustRateLimit();
+    const url = `${this.modrinthAPIUrl}/version_file/${hash}`;
+    return this.http.get<Version>(url, {headers: this.headers}).pipe(catchError(this.errorHandler<Version | AnnotatedError>()));
   }
 
-  public getVersionFromBuffer(buffer: ArrayBuffer): Observable<Version[]> {
+  public getVersionFromBuffer(buffer: ArrayBuffer): Observable<Version | AnnotatedError> {
     const fileHash = this.sha1(buffer);
     return this.getVersionFromHash(fileHash);
+  }
+
+  public isAnnotatedError(object: any): object is AnnotatedError {
+    return !!((object as AnnotatedError).error);
   }
 }

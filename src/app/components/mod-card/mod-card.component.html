@@ -24,6 +24,12 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
         {{selectedVersion.date_published | dateAgo}}
       </span>
+      <span class="flex items-center justify-center gap-x-1 dark:text-slate-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+        </svg>
+        {{selectedVersion.version_type.charAt(0).toUpperCase() + selectedVersion.version_type.slice(1)}}
+      </span>
       <span class="flex items-center gap-x-1 dark:text-slate-200" *ngIf="isCurrent">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" >
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
@@ -56,7 +62,7 @@
       </svg>
       <span class="">{{selectedVersion.downloads | shortNumber}}</span> downloads
     </p>
-    <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700">Download</a>
+    <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
   </div>
 </div>
 
@@ -91,7 +97,7 @@
       <span class="">{{selectedVersion.downloads | shortNumber}}</span> downloads
     </p>
     <div class="flex justify-between">
-      <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700">Download</a>
+      <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
       <span class="flex items-center gap-x-1 text-sm" *ngIf="isCurrent">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" >
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />

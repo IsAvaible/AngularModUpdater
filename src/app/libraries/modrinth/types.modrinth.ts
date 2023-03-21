@@ -6,6 +6,7 @@ export interface Version {
   changelog: string,
   dependencies: string[],
   game_versions: string[],
+  version_type: VersionType,
   loaders: Loader[],
   featured: boolean,
   status: Status,
@@ -58,6 +59,12 @@ export interface Project {
   gallery: string[],
 }
 
+export enum VersionType {
+  Release = "release",
+  Beta = "beta",
+  Alpha = "alpha"
+}
+
 export enum Environment {
   Required= "required",
   Optional = "optional",
@@ -80,3 +87,5 @@ export enum Status {
   Processing = "processing",
   Unknown = "unknown",
 }
+
+export interface AnnotatedError {error: any}
