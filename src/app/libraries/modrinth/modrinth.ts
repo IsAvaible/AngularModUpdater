@@ -29,16 +29,20 @@ export class Modrinth {
 
   /**
    * Returns an error handler, that handles the rate limit of the Modrinth API
-   * @param result Default value to return if the request fails
    */
   private errorHandler<T>() {
     return (error: any): Observable<T> => {
       if (this._rateLimit_Remaining == 0 || error.status == 0 && this._rateLimit_Remaining != -1) {
+        // The workaround (client side tracking of the rate limit) might be wrong. In this case the status is 0
         let statusCase = this._rateLimit_Remaining != 0;
         let timerInterval: any;
-        if (statusCase) this._rateLimit_Reset = 30;
+        if (statusCase) {
+          this._rateLimit_Reset = 30;
+          console.log(this._rateLimit_Remaining);
+        }
         this._rateLimit_Remaining = -1;
         console.log(`Rate limit reached. Wait for ${this._rateLimit_Reset} seconds before retrying.`);
+        // Fire a sweet alert
         Swal.fire({
           position: 'top-end',
           icon: 'error',
@@ -58,7 +62,7 @@ export class Modrinth {
             clearInterval(timerInterval)
           }
         })
-        setTimeout(() => this._rateLimit_Remaining = 300, 15000)
+        if (statusCase) setTimeout(() => this._rateLimit_Remaining = 0, 30 * 1000)
       }
       return of({error: error} as T);
 
@@ -77,9 +81,19 @@ export class Modrinth {
     };
   }
 
+  /**
+   * Adjusts the rate limit of the Modrinth API
+   *
+   * The Modrinth API has a rate limit of 300 requests per minute. This function reduces the remaining requests by 1
+   * and starts a timer that resets the remaining requests to 300 after 60 seconds.
+   *
+   * NOTE: This is a workaround as the API does not return the rate limit headers (CORS issue). catchError() should be in charge of this.
+   * TODO: Remove this function after fixing the CORS issue
+   * @private
+   */
   private adjustRateLimit() {
-    if (this._rateLimit_Remaining > 0) this._rateLimit_Remaining -= 1;
-    if (this.intervalRequestStart != null) return
+    if (this._rateLimit_Remaining > 0) this._rateLimit_Remaining -= 1;  // Reduce the remaining requests by 1
+    if (this.intervalRequestStart != null) return  // If the interval is already running, return
     const temp = new Date();
     this.intervalRequestStart = temp;
     this._rateLimit_Reset = 60;

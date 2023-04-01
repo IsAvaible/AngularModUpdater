@@ -19,7 +19,7 @@
       </div>
 
       <div [class]="availableModsView === View.List ? 'flex flex-col max-w-7xl space-y-4 rounded-md justify-around' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 justify-between gap-y-4'">
-        <app-mod-card *ngFor="let mod of availableMods | orderBy: 'project.title':false:true" [versions]="mod.versions" [project]="mod.project" [queryHash]="mod.queryHash" [view]="availableModsView"/>
+        <app-mod-card *ngFor="let mod of availableMods | orderBy: order:false:true" [versions]="mod.versions" [project]="mod.project" [queryHash]="mod.queryHash" [view]="availableModsView"/>
       </div>
       <div class="flex justify-between bg-white rounded-lg px-4 py-2 dark:bg-slate-900 dark:text-slate-300">
         <span class="flex items-center">

@@ -30,7 +30,7 @@
         </svg>
         {{selectedVersion.version_type.charAt(0).toUpperCase() + selectedVersion.version_type.slice(1)}}
       </span>
-      <span class="flex items-center gap-x-1 dark:text-slate-200" *ngIf="isCurrent">
+      <span class="flex items-center gap-x-1 dark:text-slate-200" *ngIf="selectedVersion.currentlyInstalled">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" >
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
         </svg>
@@ -51,7 +51,9 @@
       <div *ngIf="versions.length > 1" class="">
         <div class="flex flex-row">
           <select [(ngModel)]="selectedVersion" class="text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:text-slate-200 border border-gray-300 rounded-xl px-2 py-1">
-            <option *ngFor="let mod of versions" [ngValue]="mod">{{mod.version_number}}</option>
+            <option [class]="mod.currentlyInstalled ? 'bg-slate-100 dark:bg-slate-700' : ''" *ngFor="let mod of versions" [ngValue]="mod">
+              {{mod.version_number}}
+            </option>
           </select>
         </div>
       </div>
@@ -84,7 +86,9 @@
       <div *ngIf="versions.length > 1" class="">
         <div class="flex flex-row">
           <select [(ngModel)]="selectedVersion" class="text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-gray-300 rounded-xl px-2 py-1">
-            <option *ngFor="let mod of versions" [ngValue]="mod">{{mod.version_number}}</option>
+            <option [class]="mod.currentlyInstalled ? 'bg-slate-100 dark:bg-slate-700' : ''" *ngFor="let mod of versions" [ngValue]="mod">
+              {{mod.version_number}}
+            </option>
           </select>
         </div>
       </div>
@@ -97,8 +101,8 @@
       <span class="">{{selectedVersion.downloads | shortNumber}}</span> downloads
     </p>
     <div class="flex justify-between">
-      <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
-      <span class="flex items-center gap-x-1 text-sm" *ngIf="isCurrent">
+      <a [href]="fileUrl" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
+      <span class="flex items-center gap-x-1 text-sm" *ngIf="selectedVersion.currentlyInstalled">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" >
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
       </svg>

@@ -1,25 +1,32 @@
-import {Component, Input, OnInit} from '@angular/core';
-import {Project, Version} from "../../libraries/modrinth/types.modrinth";
+import {Component, Input} from '@angular/core';
+import {Project} from "../../libraries/modrinth/types.modrinth";
+import {ExtendedVersion} from "../mod-panel/mod-panel.component";
 
 @Component({
   selector: 'app-mod-card',
   templateUrl: './mod-card.component.html',
   styleUrls: ['./mod-card.component.css']
 })
-export class ModCardComponent implements OnInit {
-  @Input() versions!: Version[];
+export class ModCardComponent {
+  @Input() versions!: ExtendedVersion[];
   @Input() project!: Project;
   @Input() queryHash!: string;
   @Input() view!: View;
-  selectedVersion!: Version;
-  ngOnInit() {
-    this.selectedVersion = this.versions[0];
+
+  get selectedVersion() : ExtendedVersion {
+    return this.versions.find(v => v.selected)!;
+  }
+
+  set selectedVersion(version: ExtendedVersion) {
+    this.versions.find(v => v.selected)!.selected = false;
+    this.versions.find(v => v.id === version.id)!.selected = true;
+  }
+
+  get fileUrl() {
+    return this.selectedVersion.files.find(f => f.primary)!.url;
   }
 
   View = View;
-  get isCurrent() {
-    return this.selectedVersion.files.some(file => file.hashes.sha1 == this.queryHash);
-  }
 }
 
 export enum View {
