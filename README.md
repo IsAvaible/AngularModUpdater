@@ -1,7 +1,7 @@
 # Modrinth Mod Updater
 
-A Minecraft Java mod updater and migrator using the Modrinth API build with [Angular](angular.io).
-Visit the latest deployment [here](https://modrinth-mod-updater.vercel.app/).
+A Minecraft Java mod updater and migrator using the Modrinth API build with [Angular](https://angular.io/).
+Visit the latest deployment [here](https://mc-mod-updater.vercel.app/).
 
 ## Features
 Allows you to update or migrate your mods via simple drag and drop or file upload (.jar). 
