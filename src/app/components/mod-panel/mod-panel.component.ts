@@ -159,7 +159,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                 return;
               }
               // Get version data
-              this.ModrinthAPI.getVersionFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.fabric] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
+              this.ModrinthAPI.getVersionFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
                 if (this.ModrinthAPI.isAnnotatedError(targetVersionData)) {
                   if (targetVersionData.error.status == 0) return this.handleRateLimitError(file);
                   this.unresolvedMods.push({file: file, slug: slug, annotation: targetVersionData});
