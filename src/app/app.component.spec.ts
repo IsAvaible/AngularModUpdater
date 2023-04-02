@@ -16,16 +16,16 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'AngularModUpdater'`, () => {
+  it(`should have as title 'Minecraft Mod Updater'`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('AngularModUpdater');
+    expect(app.title).toEqual('Minecraft Mod Updater');
   });
 
   it('should render title', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('AngularModUpdater app is running!');
+    expect(compiled.querySelector('.content span')?.textContent).toContain('Minecraft Mod Updater app is running!');
   });
 });

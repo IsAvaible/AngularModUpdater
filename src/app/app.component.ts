@@ -10,5 +10,5 @@ import {LoaderService} from "./services/loader.service";
   providers: [FilesService, VersionsService, LoaderService]
 })
 export class AppComponent {
-  title = 'AngularModUpdater';
+  title = 'Minecraft Mod Updater';
 }
