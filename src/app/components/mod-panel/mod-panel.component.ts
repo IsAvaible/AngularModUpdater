@@ -100,7 +100,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    */
   filterProcessed() {
     const prevLen = this.files.length;
-    this.files = this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1); // Remove already processed files
+    // Remove already processed files. If the file is in the unresolved mods list and the error status is 404 keep it in the files list so that it can be reprocessed
+    this.files = this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1 && (!this.unresolvedMods.find(um => um.file.name == file.name) || ((this.unresolvedMods.find(um => um.file.name == file.name)?.annotation?.error.status)??404 != 404))); // Remove already processed files
+    // Remove files that will be reprocessed from the unresolved mods list
+    this.unresolvedMods = this.unresolvedMods.filter(um => this.files.map(file => file.name).indexOf(um.file.name) == -1);
+    // Propagate the changes to the files service
     this.filesService.setFiles(this.files);
 
     if (prevLen != this.files.length) { // If there were duplicates
