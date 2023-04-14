@@ -19,6 +19,8 @@ import { DateAgoPipe } from './pipes/date-ago/date-ago.component';
 import { ShortNumberPipe } from './pipes/short-number/short-number.component';
 import { LoaderSelectorComponent } from './components/loader-selector/loader-selector.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
+import { InfoTriangleComponent } from './components/info-triangle/info-triangle.component';
+import { InfoSectionComponent } from './components/info-section/info-section.component';
 
 @NgModule({
   declarations: [
@@ -33,7 +35,9 @@ import { ServiceWorkerModule } from '@angular/service-worker';
     ModCardComponent,
     DateAgoPipe,
     ShortNumberPipe,
-    LoaderSelectorComponent
+    LoaderSelectorComponent,
+    InfoTriangleComponent,
+    InfoSectionComponent
   ],
     imports: [
         BrowserModule,

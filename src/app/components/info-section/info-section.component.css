@@ -1,0 +1,28 @@
+.info-section {
+  margin: 0 auto;
+  padding: 20px;
+
+  border-radius: 5px;
+}
+
+.info-section h2,
+.info-section h3 {
+  margin-bottom: 10px;
+}
+
+.info-section p {
+  margin-bottom: 20px;
+}
+
+.info-section ul {
+  margin-bottom: 20px;
+}
+
+.info-section li {
+  list-style-type: disc;
+  list-style-position: inside;
+}
+
+.info-section a {
+  text-decoration: underline;
+}

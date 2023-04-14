@@ -2,9 +2,12 @@ import {Version, Project, AnnotatedError} from "./types.modrinth";
 import {catchError, Observable, of} from "rxjs";
 import {HttpClient} from "@angular/common/http";
 import Swal from "sweetalert2";
+import {inject} from "@angular/core";
 
 
 export class Modrinth {
+  private static _instance: Modrinth;
+
   public modrinthAPIUrl = 'https://api.modrinth.com/v2';  // Modrinth API Endpoint
   public headers = {"Access-Control-Allow-Origin": this.modrinthAPIUrl, "Content-Type": "text/plain"};  // Headers for the requests
 
@@ -13,6 +16,13 @@ export class Modrinth {
   private _rateLimit_Reset: number = 0;  // Seconds until the rate limit resets
   private sha1 = require('js-sha1');  // SHA1 hashing function
   private intervalRequestStart: Date | null = null;
+
+  constructor() {}
+  private http = inject(HttpClient);
+
+  public static get Instance() {
+    return this._instance || (this._instance = new this());
+  }
 
   get rateLimit_Limit(): number {
     return this._rateLimit_Limit;
@@ -23,9 +33,6 @@ export class Modrinth {
   get rateLimit_Reset(): number {
     return this._rateLimit_Reset;
   }
-
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Returns an error handler, that handles the rate limit of the Modrinth API

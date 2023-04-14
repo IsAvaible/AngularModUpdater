@@ -1,4 +1,4 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {FilesService} from "../../services/files.service";
 import {Subscription} from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
@@ -10,6 +10,7 @@ import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
 import {Loader, LoaderService} from "../../services/loader.service";
 import Swal from "sweetalert2";
+import {ModrinthService} from "../../services/modrinth.service";
 
 @Component({
   selector: 'app-mod-panel',
@@ -29,7 +30,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   toProcess: File[] = [];
   mcVersions: MinecraftVersion[] = [];
   loader!: Loader;
-  ModrinthAPI: Modrinth;
   availableModsView: View = window.innerWidth < 1200 ? View.Grid : View.List;
   filesSubscription!: Subscription;
   versionsSubscription!: Subscription;
@@ -37,9 +37,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private sha1 = require('js-sha1');
 
 
-  constructor(private filesService: FilesService, private versionsService: VersionsService, private loaderService: LoaderService, private http: HttpClient) {
-    this.ModrinthAPI = new Modrinth(http);
-  }
+  constructor() {}
+  private filesService = inject(FilesService);
+  private versionsService = inject(VersionsService);
+  private loaderService = inject(LoaderService);
+  private http = inject(HttpClient);
+  private ModrinthAPI = inject(ModrinthService);
 
   /**
    * Resets all lists

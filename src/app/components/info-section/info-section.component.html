@@ -1,0 +1,48 @@
+<div class="inset-0 overflow-y-scroll fixed z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" *ngIf="show">
+  <div class="flex items-center justify-center pt-4 px-4 pb-20 min-h-screen text-center sm:block sm:p-0" @fadeInOutAnimation>
+    <div class="fixed inset-0 bg-gray-500 dark:bg-slate-800 bg-opacity-75 dark:bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+    <div class="relative inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:align-middle sm:max-w-[80%] xl:max-w-7xl sm:p-6">
+    <div class="absolute top-0 right-0 pt-1 pr-1 mx-4 my-5">
+      <button (click)="closeInfoSection()" type="button" class="rounded-md text-gray-400 hover:text-gray-500 focus:text-gray-800 dark:text-slate-200 dark:hover:text-slate-100 dark:focus:text-white">
+      <span class="sr-only">Close</span>
+      <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      </button>
+    </div>
+    <div class="sm:flex mx-4 my-5 sm:items-start" @transformInOutAnimation>
+      <div class="info-section">
+        <h2 class="font-semibold text-lg">Minecraft Mod Updater and Loader Migrator</h2>
+        <p>
+          This tool helps you find updates for and lets you migrate Minecraft Java Mods using the
+          Modrinth API by simply uploading them as .jar files.
+        </p>
+
+        <h3 class="font-semibold text-lg">How to use:</h3>
+        <ul>
+          <li>Select the desired mod loader (Fabric / Forge / Quilt).</li>
+          <li>Select the Minecraft version you want to target.</li>
+          <li>Upload your mod(s) by dragging and dropping them onto the page.</li>
+          <li>Let the tool find the targeted versions of your mods.</li>
+        </ul>
+
+        <h3 class="font-semibold text-lg">Modrinth's Rate Limit:</h3>
+        <p>
+          Please note that this tool relies on the Modrinth API for fetching mod updates. Modrinth has a rate limit in place to prevent abuse. If you hit the rate limit, you will need to wait for a few seconds. You are able to process at most 100 mods per minute.
+        </p>
+
+        <h3 class="font-semibold text-lg">Attributions:</h3>
+        <p>
+          This tool was made with <a href="https://angular.io/">Angular</a> and <a href="https://tailwindcss.com/">Tailwind</a>
+          using icons from <a href="https://heroicons.com/">Heroicons</a> and <a href="https://iconoir.com/">Iconoir</a>.
+          The dropzone was created using the <a href="https://www.npmjs.com/package/ngx-dropzone">ngx-dropzone library</a>.
+          The source code is available on <a href="https://github.com/IsAvaible/AngularModUpdater">GitHub</a>.
+        </p>
+      </div>
+      <button (click)="closeInfoSection()" type="button" class="sm:hidden mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-slate-900 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Schließen</button>
+    </div>
+  </div>
+</div>
+</div>

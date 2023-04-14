@@ -1,0 +1,13 @@
+#triangle {
+  shape-outside: polygon(0 0, 100% 0, 100% 100%);
+  float: right;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+#triangle {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+}
+
