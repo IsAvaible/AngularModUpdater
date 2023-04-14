@@ -7,7 +7,7 @@ transition-colors hover:cursor-pointer" (click)="toggleInfoSection()">
     <path stroke-linecap="round" stroke-linejoin="round"
           d="M12 11.5v5M12 7.51l.01-.011M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
   </svg>
-  <span *ngIf="this.ModrinthAPI.rateLimit_Remaining < this.ModrinthAPI.rateLimit_Limit / 2" [ngClass]="this.ModrinthAPI.rateLimit_Remaining > this.ModrinthAPI.rateLimit_Limit-50 ? 'animate-pulse' : ''" class="w-20 text-center opacity-100 group-hover:opacity-0 group-hover:hidden text-white rotate-45">{{this.ModrinthAPI.rateLimit_Limit+1-(this.ModrinthAPI.rateLimit_Remaining??1)}} / {{this.ModrinthAPI.rateLimit_Limit}}</span>
+  <span *ngIf="this.ModrinthAPI.rateLimit_Remaining < this.ModrinthAPI.rateLimit_Limit / 2" [ngClass]="this.ModrinthAPI.rateLimit_Remaining > this.ModrinthAPI.rateLimit_Limit-50 ? 'animate-pulse' : ''" class="w-20 text-center opacity-100 group-hover:opacity-0 group-hover:hidden text-white rotate-45">{{this.ModrinthAPI.rateLimit_Limit+1-(this.ModrinthAPI.rateLimit_Remaining||1)}} / {{this.ModrinthAPI.rateLimit_Limit}}</span>
 
 </div>
 

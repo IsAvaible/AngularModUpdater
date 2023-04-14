@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://mc-mod-updater.vercel.app/sitemap.xml
