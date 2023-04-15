@@ -1,6 +1,6 @@
-<div class="inset-0 overflow-y-scroll fixed z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" *ngIf="show">
+<div class="inset-0 fixed z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" *ngIf="show">
   <div class="flex items-center justify-center pt-4 px-4 pb-20 min-h-screen text-center sm:block sm:p-0" @fadeInOutAnimation>
-    <div class="fixed inset-0 bg-gray-500 dark:bg-slate-800 bg-opacity-75 dark:bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+    <div class="fixed inset-0" aria-hidden="true"></div>
     <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
     <div class="relative inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:align-middle sm:max-w-[80%] xl:max-w-7xl sm:p-6">
@@ -12,7 +12,7 @@
       </svg>
       </button>
     </div>
-    <div class="sm:flex mx-4 my-5 sm:items-start" @transformInOutAnimation>
+    <div class="sm:flex mx-4 my-5 sm:items-start  max-h-[75vh] overflow-y-auto" @transformInOutAnimation>
       <div class="info-section">
         <h2 class="font-semibold text-lg">Minecraft Mod Updater and Loader Migrator</h2>
         <p>
