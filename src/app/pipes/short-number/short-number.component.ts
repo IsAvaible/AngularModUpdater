@@ -1,5 +1,8 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
+/**
+ * Pipe that converts a number to a short number with a suffix
+ */
 @Pipe({
   name: 'shortNumber'
 })
@@ -11,7 +14,7 @@ export class ShortNumberPipe implements PipeTransform {
     if (number === 0) return null;
     let abs = Math.abs(number);
     const rounder = Math.pow(10, 1);
-    const isNegative = number < 0; // will also work for Negetive numbers
+    const isNegative = number < 0; // will also work for Negative numbers
     let key = '';
 
     const powers = [

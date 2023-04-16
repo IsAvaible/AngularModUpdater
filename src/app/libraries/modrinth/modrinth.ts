@@ -51,7 +51,7 @@ export class Modrinth {
         console.log(`Rate limit reached. Wait for ${this._rateLimit_Reset} seconds before retrying.`);
         // Fire a sweet alert
         Swal.fire({
-          position: 'top-end',
+          position: 'top-start',
           icon: 'error',
           title: 'Rate Limit Exceeded',
           html: `Modrinths rate limit was reached, please try again in <b>${this._rateLimit_Reset}</b> seconds${statusCase ? ' (approximated)':''}.`,
@@ -116,29 +116,51 @@ export class Modrinth {
     }, 1000);
   }
 
+  /**
+   * Returns the project with the given slug
+   * @param slug The slug of the project
+   */
   public getProject(slug: string): Observable<Project | AnnotatedError> {
     this.adjustRateLimit();
     const url =`${this.modrinthAPIUrl}/project/${slug}`;
     return this.http.get<Project>(url,{headers: this.headers}).pipe(catchError(this.errorHandler<Project | AnnotatedError>()));
   }
 
+  /**
+   * Returns the versions of the project with the given slug
+   * @param slug The slug of the project
+   * @param version The accepted game version
+   * @param loaders The accepted loaders
+   */
   public getVersionFromSlug(slug: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
     this.adjustRateLimit();
     const url = `${this.modrinthAPIUrl}/project/${slug}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase())[0]}"]` : "")
     return this.http.get<Version[]>(url, {headers: this.headers}).pipe(catchError(this.errorHandler<Version[] | AnnotatedError>()));
   }
 
+  /**
+   * Returns the version with the given hash
+   * @param hash The sha-1 hash of the binary representation of the mod file
+   */
   public getVersionFromHash(hash: string): Observable<Version | AnnotatedError> {
     this.adjustRateLimit();
     const url = `${this.modrinthAPIUrl}/version_file/${hash}`;
     return this.http.get<Version>(url, {headers: this.headers}).pipe(catchError(this.errorHandler<Version | AnnotatedError>()));
   }
 
+  /**
+   * Returns the version from the given buffer (binary representation of the mod file)
+   * @param buffer The binary representation of the mod file
+   */
   public getVersionFromBuffer(buffer: ArrayBuffer): Observable<Version | AnnotatedError> {
     const fileHash = this.sha1(buffer);
     return this.getVersionFromHash(fileHash);
   }
 
+  /**
+   * Checks if the given object is an annotated error
+   * @param object The object to check
+   */
   public isAnnotatedError(object: any): object is AnnotatedError {
     return !!((object as AnnotatedError).error);
   }

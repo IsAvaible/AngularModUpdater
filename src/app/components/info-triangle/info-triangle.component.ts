@@ -30,7 +30,7 @@ export class InfoTriangleComponent {
   showInfoSection = false;
   showInfoSectionTransition = false;
 
-  ModrinthAPI = inject(ModrinthService);
+  modrinth = inject(ModrinthService);
 
   toggleInfoSection() {
     this.showInfoSectionTransition = !this.showInfoSectionTransition;
@@ -47,4 +47,6 @@ export class InfoTriangleComponent {
       this.showInfoSection = false;
     }
   }
+
+  protected readonly Math = Math;
 }

@@ -1,9 +1,12 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import {LocalStorageBehaviorSubject} from "../misc/LocalStorageBehaviorSubject";
 
+/**
+ * Service that stores the selected mod loader, synced with local storage
+ */
 @Injectable()
 export class LoaderService {
-  private loader$ = new BehaviorSubject<Loader>(Loader.fabric);
+  private loader$ = new LocalStorageBehaviorSubject<Loader>('mod-loader', Loader.fabric);
   loader = this.loader$.asObservable();
 
   constructor() {}

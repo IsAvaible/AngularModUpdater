@@ -42,7 +42,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private versionsService = inject(VersionsService);
   private loaderService = inject(LoaderService);
   private http = inject(HttpClient);
-  private ModrinthAPI = inject(ModrinthService);
+  private modrinth = inject(ModrinthService);
 
   /**
    * Resets all lists
@@ -89,10 +89,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Handles the error thrown when the rate limit is exceeded
+   * Handles request errors
    * @param file The file that caused the error
    */
-  handleRateLimitError(file: File) {
+  handleRequestError(file: File) {
     // Remove the file from the processed and toProcess lists, so that it can be reprocessed and won't be removed from the files list
     this.processedFilesNames.splice(this.processedFilesNames.indexOf(file.name), 1);
     this.toProcess.splice(this.toProcess.indexOf(file), 1);
@@ -103,8 +103,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    */
   filterProcessed() {
     const prevLen = this.files.length;
-    // Remove already processed files. If the file is in the unresolved mods list and the error status is 404 keep it in the files list so that it can be reprocessed
-    this.files = this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1 && (!this.unresolvedMods.find(um => um.file.name == file.name) || ((this.unresolvedMods.find(um => um.file.name == file.name)?.annotation?.error.status)??404 != 404))); // Remove already processed files
+    // Remove already processed files. This is done to prevent duplicates
+    this.files = this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1); // Remove already processed files
     // Remove files that will be reprocessed from the unresolved mods list
     this.unresolvedMods = this.unresolvedMods.filter(um => this.files.map(file => file.name).indexOf(um.file.name) == -1);
     // Propagate the changes to the files service
@@ -145,19 +145,23 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         // Generate the file hash
         const fileHash = this.sha1(e.target.result);
         // Request Modrinth API for the mod with the given hash
-        this.ModrinthAPI.getVersionFromHash(fileHash)
+        this.modrinth.getVersionFromHash(fileHash)
           .subscribe(versionData => {
-            if (this.ModrinthAPI.isAnnotatedError(versionData)) { // The mod is not on Modrinth
-              if (versionData.error.status == 0) return this.handleRateLimitError(file);
-              this.unresolvedMods.push({file: file, slug: undefined, annotation: versionData});
+            if (this.modrinth.isAnnotatedError(versionData)) { // The mod is not on Modrinth
+              if (versionData.error.status != 404) this.handleRequestError(file);
+              if (versionData.error.status != 0) {
+                this.unresolvedMods.push({file: file, slug: undefined, annotation: versionData});
+              }
               return;
             }
             const slug = versionData.project_id;
             // Get project data
-            this.ModrinthAPI.getProject(slug).subscribe(projectData => {
-              if (this.ModrinthAPI.isAnnotatedError(projectData)) {
-                if (projectData.error.status == 0) return this.handleRateLimitError(file);
-                this.unresolvedMods.push({file: file, slug: slug, annotation: projectData});
+            this.modrinth.getProject(slug).subscribe(projectData => {
+              if (this.modrinth.isAnnotatedError(projectData)) {
+                if (projectData.error.status != 404) this.handleRequestError(file);
+                if (projectData.error.status != 0) {
+                  this.unresolvedMods.push({file: file, slug: slug, annotation: projectData});
+                }
                 return;
               }
               const checkedLoader = (this.loader == Loader.quilt ? Loader.fabric : this.loader).toLowerCase() as Loader;
@@ -166,11 +170,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                 return;
               }
               // Get version data
-              this.ModrinthAPI.getVersionFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
-                if (this.ModrinthAPI.isAnnotatedError(targetVersionData)) {
-                  if (targetVersionData.error.status == 0) return this.handleRateLimitError(file);
-                  this.unresolvedMods.push({file: file, slug: slug, annotation: targetVersionData});
-                  return
+              this.modrinth.getVersionFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
+                if (this.modrinth.isAnnotatedError(targetVersionData)) {
+                  if (targetVersionData.error.status != 404) this.handleRequestError(file);
+                  if (targetVersionData.error.status != 0) {
+                    this.unresolvedMods.push({file: file, slug: slug, annotation: targetVersionData});
+                  }
+                  return;
                 }
                 if (targetVersionData.length > 0) { // The mod has one or more versions available for the selected mc version
                   const extendedTargetVersionData = (targetVersionData  as ExtendedVersion[]).map(version => {version.currentlyInstalled = !!version.files.find(file => file.hashes.sha1 == fileHash); return version}); // Annotate whether the mod is already installed

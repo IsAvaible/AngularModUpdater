@@ -12,12 +12,12 @@
       </svg>
       </button>
     </div>
-    <div class="sm:flex mx-4 my-5 sm:items-start  max-h-[75vh] overflow-y-auto" @transformInOutAnimation>
+    <div #modal class="sm:flex mx-4 my-5 sm:items-start  max-h-[75vh] overflow-y-auto" @transformInOutAnimation>
       <div class="info-section">
         <h2 class="font-semibold text-lg">Minecraft Mod Updater and Loader Migrator</h2>
         <p>
           This tool helps you find updates for and lets you migrate Minecraft Java Mods using the
-          Modrinth API by simply uploading them as .jar files.
+          <a target="_blank" referrerpolicy="no-referrer" href="https://modrinth.com/">Modrinth</a> API by simply uploading them as .jar files.
         </p>
 
         <h3 class="font-semibold text-lg">How to use:</h3>
@@ -31,6 +31,7 @@
         <h3 class="font-semibold text-lg">Modrinth's Rate Limit:</h3>
         <p>
           Please note that this tool relies on the Modrinth API for fetching mod updates. Modrinth has a rate limit in place to prevent abuse. If you hit the rate limit, you will need to wait for a few seconds. You are able to process at most 100 mods per minute.
+          Currently you have used {{this.modrinth.rateLimit_Limit-Math.max(this.modrinth.rateLimit_Remaining,0)}} of {{this.modrinth.rateLimit_Limit}} tokens{{this.modrinth.rateLimit_Reset ? ' (resets in '+this.modrinth.rateLimit_Reset+' seconds)':''}}.
         </p>
 
         <h3 class="font-semibold text-lg">Attributions:</h3>
@@ -41,7 +42,7 @@
           The source code is available on <a target="_blank" referrerpolicy="no-referrer" href="https://github.com/IsAvaible/AngularModUpdater">GitHub</a>.
         </p>
       </div>
-      <button (click)="closeInfoSection()" type="button" class="sm:hidden mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-slate-900 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Schließen</button>
+      <button (click)="closeInfoSection()" type="button" class="sm:hidden mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-slate-900 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
     </div>
   </div>
 </div>

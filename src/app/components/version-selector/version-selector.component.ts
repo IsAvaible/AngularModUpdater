@@ -1,4 +1,4 @@
-import {Component, ElementRef, HostListener, OnDestroy, ViewChild} from '@angular/core';
+import {Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {trigger, style, animate, transition} from '@angular/animations';
 import {Subscription} from "rxjs";
 import {VersionsService, MinecraftVersion} from "../../services/versions.service";
@@ -14,10 +14,12 @@ import {VersionsService, MinecraftVersion} from "../../services/versions.service
     ])
   ]
 })
-export class VersionSelectorComponent implements OnDestroy {
-  versions!: MinecraftVersion[];
-  showDropdown: boolean;
-  subscription!: Subscription;
+export class VersionSelectorComponent implements OnInit, OnDestroy {
+  versions!: MinecraftVersion[];  // Stores all minecraft versions
+  displayTypes = ["release"];  // Configures, which version types are displayed in the version dialog
+  filteredVersions!: MinecraftVersion[];  // Stores all versions that match one of the display types
+  showDropdown: boolean;  // Whether the dropdown is active
+  subscription!: Subscription;  // Subscription to unsubscribe from
 
   constructor(private versionsService: VersionsService) {
     this.showDropdown = false;
@@ -26,6 +28,7 @@ export class VersionSelectorComponent implements OnDestroy {
   ngOnInit() {
     this.subscription = this.versionsService.versions.subscribe(versions => {
       this.versions = versions;
+      this.filteredVersions = this.versions.filter(v => this.displayTypes.indexOf(v.type) != -1);
     });
   }
 

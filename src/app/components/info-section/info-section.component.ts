@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import {Component, ElementRef, HostListener, inject, ViewChild} from '@angular/core';
 import { Output, EventEmitter } from '@angular/core';
 import {animate, style, transition, trigger} from "@angular/animations";
+import {ModrinthService} from "../../services/modrinth.service";
 
 @Component({
   selector: 'app-info-section',
@@ -18,6 +19,8 @@ import {animate, style, transition, trigger} from "@angular/animations";
   ]
 })
 export class InfoSectionComponent {
+  modrinth = inject(ModrinthService);
+
   show = true;
 
   @Output() closeEvent = new EventEmitter<boolean>(false);
@@ -25,4 +28,16 @@ export class InfoSectionComponent {
     this.show = false;
     this.closeEvent.next(true);
   }
+
+
+  @ViewChild('modal', { static: false }) modalRef: ElementRef | undefined;
+  @HostListener('document:mousedown', ['$event'])
+  onGlobalClick(event: { target: any; }): void {
+    if (this.modalRef && !this.modalRef.nativeElement.contains(event.target)) {
+      // clicked outside => close info section
+      this.closeInfoSection();
+    }
+  }
+
+  protected readonly Math = Math;
 }

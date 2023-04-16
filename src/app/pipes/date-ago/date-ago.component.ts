@@ -1,5 +1,8 @@
 import {Pipe, PipeTransform} from '@angular/core';
 
+/**
+ * Pipe that converts a date to a string like "2 days ago"
+ */
 @Pipe({
   name: 'dateAgo',
   pure: true
