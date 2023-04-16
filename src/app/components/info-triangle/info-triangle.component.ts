@@ -33,7 +33,9 @@ export class InfoTriangleComponent {
   modrinth = inject(ModrinthService);
 
   toggleInfoSection() {
-    this.showInfoSectionTransition = !this.showInfoSectionTransition;
+    if (this.showInfoSection == this.showInfoSectionTransition) {  // No unfinished animations
+      this.showInfoSectionTransition = !this.showInfoSectionTransition;
+    }
   }
 
   animationStart = ($event: AnimationEvent) => {

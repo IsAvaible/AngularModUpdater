@@ -14,12 +14,12 @@
   margin-bottom: 20px;
 }
 
-.info-section ul {
+.info-section ol {
   margin-bottom: 20px;
 }
 
 .info-section li {
-  list-style-type: disc;
+  list-style-type: decimal;
   list-style-position: inside;
 }
 

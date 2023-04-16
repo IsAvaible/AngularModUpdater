@@ -7,7 +7,7 @@ transition-colors"
      [@openClose]="showInfoSectionTransition ? 'open' : 'closed'" (@openClose.done)="animationDone($event)" (@openClose.start)="animationStart($event)">
   <!-- (i) icon that appears on hover -->
   <svg *ngIf="!showInfoSection" [ngClass]="(this.modrinth.rateLimit_Remaining >= this.modrinth.rateLimit_Limit / 2 ? '' : 'hidden')"
-       class="w-8 h-8 opacity-0 group-hover:opacity-100 group-hover:inline text-white rotate-45 transition-opacity"
+       class="w-8 h-8 group-hover:inline text-white rotate-45 transition-opacity"
        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round"
           d="M12 11.5v5M12 7.51l.01-.011M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
