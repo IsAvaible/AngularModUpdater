@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {FilesService} from "./services/files.service";
 import {VersionsService} from "./services/versions.service";
 import {LoaderService} from "./services/loader.service";
@@ -10,7 +10,7 @@ import { Meta, Title } from '@angular/platform-browser';
   styleUrls: ['./app.component.css'],
   providers: [FilesService, VersionsService, LoaderService]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'Minecraft Mod Updater';
 
   constructor(private meta: Meta, private titleService: Title) {}
