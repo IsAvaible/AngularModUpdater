@@ -4,7 +4,6 @@ import {Subscription} from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
 import {Project, Version, AnnotatedError} from "../../libraries/modrinth/types.modrinth";
-import {Modrinth} from "../../libraries/modrinth/modrinth";
 import {View} from "../mod-card/mod-card.component";
 import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
@@ -23,7 +22,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   invalidLoaderMods: { file: File, slug: string, project: Project }[] = [];  // Stores all mods that are not available for the selected loader
   unresolvedMods: { file: File, slug: string | undefined, annotation: AnnotatedError | null }[] = [];  // Stores all mods that could not be resolved (network error, etc.)
 
-  order: any[] = ['versions[0].currentlyInstalled', 'project.title'];  // Stores the order of the available mods list
+  order: any[] = ['versions[0].versionStatus', 'project.title'];  // Stores the order of the available mods list
 
   files: File[] = [];
   processedFilesNames: string[] = [];
@@ -170,7 +169,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                 return;
               }
               // Get version data
-              this.modrinth.getVersionFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
+              this.modrinth.getVersionsFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
                 if (this.modrinth.isAnnotatedError(targetVersionData)) {
                   if (targetVersionData.error.status != 404) this.handleRequestError(file);
                   if (targetVersionData.error.status != 0) {
@@ -179,7 +178,19 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                   return;
                 }
                 if (targetVersionData.length > 0) { // The mod has one or more versions available for the selected mc version
-                  const extendedTargetVersionData = (targetVersionData  as ExtendedVersion[]).map(version => {version.currentlyInstalled = !!version.files.find(file => file.hashes.sha1 == fileHash); return version}); // Annotate whether the mod is already installed
+                  const installedVersion = versionData;
+                  const extendedTargetVersionData = (targetVersionData  as ExtendedVersion[]).map(version => {
+                    if (version.id == installedVersion.id) {
+                      version.versionStatus = VersionStatus.Installed;
+                    } else {
+                      if (version.date_published > installedVersion.date_published) {
+                        version.versionStatus = VersionStatus.Updated;
+                      } else {
+                        version.versionStatus = VersionStatus.Outdated;
+                      }
+                    }
+                    return version;
+                  }); // Annotate the status of the mod
                   extendedTargetVersionData[0].selected = true; // Select the first version by default
                   this.availableMods.push({versions: extendedTargetVersionData, project: projectData});
                 } else { // The mod is not available for the selected mc version
@@ -221,10 +232,16 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
   }
 
-  View = View; // Expose the View enum to the template
+  View = View;  // Expose the View enum to the template
 }
 
 export interface ExtendedVersion extends Version {
-  currentlyInstalled: boolean;  // Whether the version is already installed
+  versionStatus: VersionStatus;  // Whether the version is updated, installed or outdated
   selected: boolean;  // Whether the version was selected by the user
+}
+
+export enum VersionStatus {
+  Updated,
+  Installed,
+  Outdated
 }

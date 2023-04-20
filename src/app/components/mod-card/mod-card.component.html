@@ -1,13 +1,14 @@
-<div class="p-4 w-full bg-white dark:bg-slate-800 dark:text-slate-200 rounded-lg shadow-md overflow-y-auto flex gap-x-5" *ngIf="view == View.List">
+<div class="p-4 w-full bg-white dark:bg-slate-800 dark:text-slate-200 rounded-lg shadow-md" *ngIf="view == View.List">
+  <div class="overflow-y-auto flex gap-x-5">
   <div class="flex flex-col justify-center sm:order-first min-w-16 min-h-16">
-    <a *ngIf="view == View.List" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer" class="hidden sm:block" title="{{project.title}}" tabindex="-1">
+    <a *ngIf="view == View.List" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer" class="hidden sm:block" title="Open the Projects Modrinth Page"  tabindex="-1">
       <img src="{{project.icon_url}}" alt="{{project.title}}" class="aspect-square w-16 rounded-xl" style="background-color: {{project.color}}"/>
     </a>
   </div>
   <div class="flex flex-col flex-grow order-last sm:order-first">
     <div class="flex flex-row gap-x-1 items-baseline">
       <h2 class="text-lg font-bold dark:text-slate-100"><a class="hover:underline" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer">{{project.title}}</a></h2>
-      <p>by <a class="underline" href="https://modrinth.com/user/{{selectedVersion.author_id}}" target="_blank" referrerpolicy="no-referrer">{{selectedVersion.author_id}}</a></p>
+      <p>by <a class="underline" href="https://modrinth.com/user/{{selectedVersion.author_id}}" title="Open the Author's Modrinth Page" target="_blank" referrerpolicy="no-referrer">{{selectedVersion.author_id}}</a></p>
     </div>
     <p class="text-gray-700 dark:text-slate-200">{{project.description}}</p>
     <div class="flex flex-row gap-x-3 text-sm">
@@ -20,26 +21,21 @@
           <span *ngSwitchDefault>Client</span>
         </span>
       </span>
-      <span class="flex items-center gap-x-1">
+      <button title="Open the Changelog" (click)="toggleChangelog()" class="flex items-center gap-x-1 hover:underline">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
         {{selectedVersion.date_published | dateAgo}}
-      </span>
+      </button>
       <span class="flex items-center justify-center gap-x-1 dark:text-slate-200">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
         </svg>
         {{selectedVersion.version_type.charAt(0).toUpperCase() + selectedVersion.version_type.slice(1)}}
       </span>
-      <span class="flex items-center gap-x-1 dark:text-slate-200" *ngIf="selectedVersion.currentlyInstalled">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
-        </svg>
-        Currently Installed
-      </span>
+      <app-mod-status-label [status]="selectedVersion.versionStatus" [view]="view"/>
     </div>
   </div>
   <div class="flex flex-col justify-center flex-shrink items-center sm:items-start space-y-1 order-first sm:order-last">
-    <a *ngIf="view == View.List" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer" class="aspect-square sm:hidden" title="{{project.title}}" tabindex="-1">
+    <a *ngIf="view == View.List" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer" class="aspect-square sm:hidden" title="Open the Projects Modrinth Page"  tabindex="-1">
       <img src="{{project.icon_url}}" alt="{{project.title}}" class="h-8 w-8 rounded-lg"/>
     </a>
 
@@ -51,7 +47,7 @@
       <div *ngIf="versions.length > 1" class="">
         <div class="flex flex-row">
           <select [(ngModel)]="selectedVersion" class="text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:text-slate-200 border border-gray-300 rounded-xl px-2 py-1">
-            <option [class]="mod.currentlyInstalled ? 'bg-slate-100 dark:bg-slate-700' : ''" *ngFor="let mod of versions" [ngValue]="mod">
+            <option [class]="mod.versionStatus == VersionStatus.Installed ? 'bg-slate-100 dark:bg-slate-700' : ''" *ngFor="let mod of versions" [ngValue]="mod">
               {{mod.version_number}}
             </option>
           </select>
@@ -65,6 +61,17 @@
       <span class="">{{selectedVersion.downloads | shortNumber}}</span> downloads
     </p>
     <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
+  </div>
+  </div>
+  <div *ngIf="showChangelog" class="max-w-full pt-2">
+    <h4 class="font-bold text-2xl">Changelog:</h4>
+    <markdown class="undo-preflight text-sm" [data]="selectedVersion.changelog"></markdown>
+    <button (click)="toggleChangelog()" class="w-full h-7 hover:bg-gray-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex justify-center items-center rounded-md">
+      <svg [ngClass]="showChangelog ? '' : 'rotate-180'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+      </svg>
+      <span class="sr-only">Toggle Changelog</span>
+    </button>
   </div>
 </div>
 
@@ -86,7 +93,7 @@
       <div *ngIf="versions.length > 1" class="">
         <div class="flex flex-row">
           <select [(ngModel)]="selectedVersion" class="text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-gray-300 rounded-xl px-2 py-1">
-            <option [class]="mod.currentlyInstalled ? 'bg-slate-100 dark:bg-slate-700' : ''" *ngFor="let mod of versions" [ngValue]="mod">
+            <option [class]="mod.versionStatus == VersionStatus.Installed ? 'bg-slate-100 dark:bg-slate-700' : ''" *ngFor="let mod of versions" [ngValue]="mod">
               {{mod.version_number}}
             </option>
           </select>
@@ -102,12 +109,7 @@
     </p>
     <div class="flex justify-between">
       <a [href]="fileUrl" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
-      <span class="flex items-center gap-x-1 text-sm" *ngIf="selectedVersion.currentlyInstalled">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
-      </svg>
-      Installed
-    </span>
+      <app-mod-status-label [status]="selectedVersion.versionStatus" [view]="view"/>
     </div>
 
   </div>

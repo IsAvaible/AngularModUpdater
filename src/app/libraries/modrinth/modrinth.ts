@@ -1,5 +1,5 @@
 import {Version, Project, AnnotatedError} from "./types.modrinth";
-import {catchError, Observable, of} from "rxjs";
+import {catchError, map, Observable, of} from "rxjs";
 import {HttpClient} from "@angular/common/http";
 import Swal from "sweetalert2";
 import {inject} from "@angular/core";
@@ -116,6 +116,20 @@ export class Modrinth {
     }, 1000);
   }
 
+  private parseProject(project: Project): Project {
+    project.published = new Date(project.published);
+    project.updated = new Date(project.updated);
+    if (project.approved != null) project.approved = new Date(project.approved);
+    return project;
+  }
+  private parseVersion(version: Version): Version {
+    version.date_published = new Date(version.date_published);
+    return version;
+  }
+  private parseVersions(versions: Version[]): Version[] {
+    return versions.map(this.parseVersion);
+  }
+
   /**
    * Returns the project with the given slug
    * @param slug The slug of the project
@@ -123,7 +137,7 @@ export class Modrinth {
   public getProject(slug: string): Observable<Project | AnnotatedError> {
     this.adjustRateLimit();
     const url =`${this.modrinthAPIUrl}/project/${slug}`;
-    return this.http.get<Project>(url,{headers: this.headers}).pipe(catchError(this.errorHandler<Project | AnnotatedError>()));
+    return this.http.get<Project>(url,{headers: this.headers}).pipe(map(this.parseProject), catchError(this.errorHandler<Project | AnnotatedError>()));
   }
 
   /**
@@ -132,10 +146,10 @@ export class Modrinth {
    * @param version The accepted game version
    * @param loaders The accepted loaders
    */
-  public getVersionFromSlug(slug: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
+  public getVersionsFromSlug(slug: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
     this.adjustRateLimit();
     const url = `${this.modrinthAPIUrl}/project/${slug}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase())[0]}"]` : "")
-    return this.http.get<Version[]>(url, {headers: this.headers}).pipe(catchError(this.errorHandler<Version[] | AnnotatedError>()));
+    return this.http.get<Version[]>(url, {headers: this.headers}).pipe(map(resp => this.parseVersions(resp)), catchError(this.errorHandler<Version[] | AnnotatedError>()));
   }
 
   /**
@@ -145,7 +159,7 @@ export class Modrinth {
   public getVersionFromHash(hash: string): Observable<Version | AnnotatedError> {
     this.adjustRateLimit();
     const url = `${this.modrinthAPIUrl}/version_file/${hash}`;
-    return this.http.get<Version>(url, {headers: this.headers}).pipe(catchError(this.errorHandler<Version | AnnotatedError>()));
+    return this.http.get<Version>(url, {headers: this.headers}).pipe(map(this.parseVersion), catchError(this.errorHandler<Version | AnnotatedError>()));
   }
 
   /**

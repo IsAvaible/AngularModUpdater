@@ -1,6 +1,6 @@
 import {Component, Input} from '@angular/core';
 import {Project} from "../../libraries/modrinth/types.modrinth";
-import {ExtendedVersion} from "../mod-panel/mod-panel.component";
+import {ExtendedVersion, VersionStatus} from "../mod-panel/mod-panel.component";
 
 @Component({
   selector: 'app-mod-card',
@@ -10,8 +10,9 @@ import {ExtendedVersion} from "../mod-panel/mod-panel.component";
 export class ModCardComponent {
   @Input() versions!: ExtendedVersion[];
   @Input() project!: Project;
-  @Input() queryHash!: string;
   @Input() view!: View;
+
+  showChangelog = false;
 
   get selectedVersion() : ExtendedVersion {
     return this.versions.find(v => v.selected)!;
@@ -23,10 +24,15 @@ export class ModCardComponent {
   }
 
   get fileUrl() {
-    return this.selectedVersion.files.find(f => f.primary)!.url;
+    return (this.selectedVersion.files.find(f => f.primary) || this.selectedVersion.files[0]).url;
   }
 
-  View = View;
+  toggleChangelog() {
+    this.showChangelog = !this.showChangelog;
+  }
+
+  protected readonly View = View;
+  protected readonly VersionStatus = VersionStatus;
 }
 
 export enum View {
