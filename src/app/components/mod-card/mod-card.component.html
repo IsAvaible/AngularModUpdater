@@ -1,4 +1,4 @@
-<div class="p-4 w-full bg-white dark:bg-slate-800 dark:text-slate-200 rounded-lg shadow-md" *ngIf="view == View.List">
+<div class="p-4 w-full bg-white dark:bg-slate-800 dark:text-slate-200 rounded-lg shadow-md flex flex-col" *ngIf="view == View.List">
   <div class="overflow-y-auto flex gap-x-5">
   <div class="flex flex-col justify-center sm:order-first min-w-16 min-h-16">
     <a *ngIf="view == View.List" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer" class="hidden sm:block" title="Open the Projects Modrinth Page"  tabindex="-1">
@@ -63,7 +63,7 @@
     <a href="{{selectedVersion.files[0].url}}" class="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">Download</a>
   </div>
   </div>
-  <div *ngIf="showChangelog" class="max-w-full pt-2">
+  <div *ngIf="showChangelog" @slideInOut class="pt-2 overflow-y-clip">
     <h4 class="font-bold text-2xl">Changelog:</h4>
     <markdown class="undo-preflight text-sm" [data]="selectedVersion.changelog"></markdown>
     <button (click)="toggleChangelog()" class="w-full h-7 hover:bg-gray-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex justify-center items-center rounded-md">

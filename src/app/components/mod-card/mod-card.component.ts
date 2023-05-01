@@ -1,11 +1,23 @@
 import {Component, Input} from '@angular/core';
 import {Project} from "../../libraries/modrinth/types.modrinth";
 import {ExtendedVersion, VersionStatus} from "../mod-panel/mod-panel.component";
+import {animate, style, transition, trigger} from "@angular/animations";
 
 @Component({
   selector: 'app-mod-card',
   templateUrl: './mod-card.component.html',
-  styleUrls: ['./mod-card.component.css']
+  styleUrls: ['./mod-card.component.css'],
+  animations: [
+    trigger('slideInOut', [
+      transition(':enter', [
+        style({height: 0}),
+        animate('150ms ease-out', style({height: '*'}))
+      ]),
+      transition(':leave', [
+        animate('150ms ease-in', style({height: 0, opacity: 0}))
+      ])
+    ])
+  ]
 })
 export class ModCardComponent {
   @Input() versions!: ExtendedVersion[];
