@@ -127,18 +127,36 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   /**
    * Runs the mod processing on the files uploaded by the user
    */
-  updateMods() {
+  async updateMods() {
     this.filterProcessed();  // Remove already processed files
     let mcVersion: MinecraftVersion = this.mcVersions.find(v => v.selected)!;  // Get the selected version
 
     this.toProcess = [...new Set(this.files)]  // Remove duplicates (redundant)
+    let counter = 0;
+    if (this.toProcess.length > 99) { // If there are more than 99 files to process limit the number of files to process to 99
+      const message = `${this.toProcess.length - 99} file` + (this.toProcess.length - 99 > 1 ? "s" : "") + " will not be processed to prevent rate limiting";
+      console.log(message);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'warning',
+        title: message,
+        showConfirmButton: false,
+        timer: 3000,
+        backdrop: `rgba(0,0,0,0.0)`
+      })
+      this.toProcess.splice(98);
+    }
     for (const file of this.toProcess) {
+      if (counter++ % 20 == 0) {
+        // Wait 1 second between each 20 files to prevent 504 errors
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
       const reader = new FileReader();  // Create a new FileReader for each file to allow parallel processing
       reader.onload = (e) => {
         this.processedFilesNames.push(file.name);
         if (e.target == null) {
           console.log("Error: Could not read " + file.name);
-          this.unresolvedMods.push({file: file, slug: undefined, annotation: null});
+          this.unresolvedMods.push({file: file, slug: undefined, annotation: {error: {status: 0, message: "Could not read file"}}});
           return;
         }
         // Generate the file hash

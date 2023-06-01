@@ -105,7 +105,7 @@ export class Modrinth {
     this.intervalRequestStart = temp;
     this._rateLimit_Reset = 60;
     setInterval(() => {
-      if (this._rateLimit_Reset == 0 && this.intervalRequestStart == temp) {
+      if (this._rateLimit_Reset <= 0) {
         this.intervalRequestStart = null;
         this._rateLimit_Remaining = 300;
         // @ts-ignore
