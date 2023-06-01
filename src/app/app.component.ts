@@ -20,7 +20,7 @@ export class AppComponent implements OnInit {
     this.meta.addTags([
       {name: 'description', content: 'An easy-to-use config-free online Minecraft mod updater for Fabric, Forge and Quilt'},
       {name: 'author', content: 'Simon Felix Conrad'},
-      {name: 'keywords', content: 'Minecraft Mod Updater Migration Loader Downgrade Update Modrinth IsAvaible Easy Online Fabric Forge Quilt Simple'}
+      {name: 'keywords', content: 'Minecraft, Mod Updater, Migration, Loader, Downgrade, Update, Modrinth, IsAvaible, Easy, Online, Fabric, Forge, Quilt, Simple'}
     ]);
   }
 
