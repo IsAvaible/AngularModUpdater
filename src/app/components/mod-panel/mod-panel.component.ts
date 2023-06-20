@@ -77,14 +77,18 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    */
   get loading() {
     // Checks if there are files to process and if the size of the union of the processed files and the files to process is equal to the size of the files list
-    const value = this.toProcess.length && (this.toProcess.length  + this.processedFilesNames.filter(name => this.toProcess.map(file => file.name).indexOf(name) == -1).length) != (this.availableMods.length + this.unavailableMods.length + this.invalidLoaderMods.length + this.unresolvedMods.length);
-    if (!value && this.toProcess.length) { // If the component is no longer processing files and it was processing files before
+    const toProcessNames = this.toProcess.map(file => file.name);
+    const loading = toProcessNames.length &&
+      (toProcessNames.length + this.processedFilesNames.filter(name => !toProcessNames.includes(name)).length)
+      !=
+      (this.availableMods.length + this.unavailableMods.length + this.invalidLoaderMods.length + this.unresolvedMods.length);
+    if (!loading && toProcessNames.length) { // If the component is no longer processing files, and it was processing files before
       setTimeout(() => { // Push the processing to the next tick so that the files list can be updated
         this.filesService.setFiles(this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1)); // Remove all processed files from the files list
         this.toProcess = []; // Reset the toProcess list
       }, 1)
     }
-    return value;
+    return loading;
   }
 
   /**
