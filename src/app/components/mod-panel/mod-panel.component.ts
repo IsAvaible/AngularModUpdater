@@ -132,9 +132,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     let mcVersion: MinecraftVersion = this.mcVersions.find(v => v.selected)!;  // Get the selected version
 
     this.toProcess = [...new Set(this.files)]  // Remove duplicates (redundant)
-    let counter = 0;
-    if (this.toProcess.length > 99) { // If there are more than 99 files to process limit the number of files to process to 99
-      const message = `${this.toProcess.length - 99} file` + (this.toProcess.length - 99 > 1 ? "s" : "") + " will not be processed to prevent rate limiting";
+    if (this.toProcess.length > 295) { // Limit the number of files to process to 295
+      const message = `${this.toProcess.length - 295} file` + (this.toProcess.length - 295 > 1 ? "s" : "") + " will not be processed to prevent rate limiting";
       console.log(message);
       Swal.fire({
         position: 'top-end',
@@ -144,13 +143,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         timer: 3000,
         backdrop: `rgba(0,0,0,0.0)`
       })
-      this.toProcess.splice(98);
+      this.toProcess.splice(294);
     }
     for (const file of this.toProcess) {
-      if (counter++ % 20 == 0) {
-        // Wait 1 second between each 20 files to prevent 504 errors
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
       const reader = new FileReader();  // Create a new FileReader for each file to allow parallel processing
       reader.onload = (e) => {
         this.processedFilesNames.push(file.name);
@@ -171,23 +166,24 @@ export class ModPanelComponent implements OnInit, OnDestroy {
               }
               return;
             }
-            const slug = versionData.project_id;
+            const id = versionData.project_id;
             // Get project data
-            this.modrinth.getProject(slug).subscribe(projectData => {
+            this.modrinth.getProject(id).subscribe(projectData => {
               if (this.modrinth.isAnnotatedError(projectData)) {
                 if (projectData.error.status != 404) this.handleRequestError(file);
                 if (projectData.error.status != 0) {
-                  this.unresolvedMods.push({file: file, slug: slug, annotation: projectData});
+                  this.unresolvedMods.push({file: file, slug: id, annotation: projectData});
                 }
                 return;
               }
+              const slug = projectData.slug;
               const checkedLoader = (this.loader == Loader.quilt ? Loader.fabric : this.loader).toLowerCase() as Loader;
               if (!projectData.loaders.includes(checkedLoader)) { // Check if the mod is available for the selected loader (Fabric mods are also available for Quilt)
-                this.invalidLoaderMods.push({file: file, slug: slug!, project: projectData});
+                this.invalidLoaderMods.push({file: file, slug: slug, project: projectData});
                 return;
               }
               // Get version data
-              this.modrinth.getVersionsFromSlug(slug, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
+              this.modrinth.getVersionsFromId(id, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
                 if (this.modrinth.isAnnotatedError(targetVersionData)) {
                   if (targetVersionData.error.status != 404) this.handleRequestError(file);
                   if (targetVersionData.error.status != 0) {
@@ -212,7 +208,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                   extendedTargetVersionData[0].selected = true; // Select the first version by default
                   this.availableMods.push({versions: extendedTargetVersionData, project: projectData});
                 } else { // The mod is not available for the selected mc version
-                  this.unavailableMods.push({file: file, slug: slug!, project: projectData})
+                  this.unavailableMods.push({file: file, slug: slug, project: projectData})
                 }
               });
             });

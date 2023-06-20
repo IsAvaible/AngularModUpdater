@@ -30,7 +30,7 @@
 
         <h3 class="font-semibold text-lg">Modrinth's Rate Limit:</h3>
         <p>
-          Please note that this tool relies on the Modrinth API for fetching mod updates. Modrinth has a rate limit in place to prevent abuse. If you hit the rate limit, you will need to wait for a few seconds. You are able to process at most 100 mods per minute.
+          Please note that this tool relies on the Modrinth API for fetching mod updates. Modrinth has a rate limit in place to prevent abuse. If you hit the rate limit, you will need to wait for a few seconds. You are able to process at most ~290 mods per minute.
           Currently you have used {{this.modrinth.rateLimit_Limit-Math.max(this.modrinth.rateLimit_Remaining,0)}} of {{this.modrinth.rateLimit_Limit}} tokens{{this.modrinth.rateLimit_Reset ? ' (resets in '+this.modrinth.rateLimit_Reset+' seconds)':''}}.
         </p>
 

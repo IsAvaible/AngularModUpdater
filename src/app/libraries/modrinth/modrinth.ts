@@ -1,5 +1,14 @@
 import {Version, Project, AnnotatedError} from "./types.modrinth";
-import {catchError, map, Observable, of} from "rxjs";
+import {
+  catchError,
+  map,
+  Observable,
+  of,
+  share,
+  Subject,
+  take,
+  switchMap, bufferTime, filter
+} from "rxjs";
 import {HttpClient} from "@angular/common/http";
 import Swal from "sweetalert2";
 import {inject} from "@angular/core";
@@ -9,15 +18,34 @@ export class Modrinth {
   private static _instance: Modrinth;
 
   public modrinthAPIUrl = 'https://api.modrinth.com/v2';  // Modrinth API Endpoint
-  public headers = {"Access-Control-Allow-Origin": this.modrinthAPIUrl, "Content-Type": "text/plain"};  // Headers for the requests
+  public headers = {"Access-Control-Allow-Origin": this.modrinthAPIUrl, "Content-Type": "application/json", "Accept": "application/json"};  // Headers for the requests
 
   private _rateLimit_Limit: number = 300;  // Rate limit maximum per minute
   private _rateLimit_Remaining: number = 300;  // Requests remaining
   private _rateLimit_Reset: number = 0;  // Seconds until the rate limit resets
   private sha1 = require('js-sha1');  // SHA1 hashing function
-  private intervalRequestStart: Date | null = null;
+  private intervalRequestStart: Date | null = null; // Date of the first request in the current interval
 
-  constructor() {}
+  public bufferDelay = 1000;
+
+  private getVersionBuffer = new Subject<string>();
+  private getVersionBufferResolver = this.getVersionBuffer.pipe(
+    bufferTime(this.bufferDelay),
+    switchMap(hashes => this.getVersionsFromHashes(hashes)),
+    share(),
+  );
+
+  private getProjectBuffer = new Subject<string>();
+  private getProjectBufferResolver = this.getProjectBuffer.pipe(
+    bufferTime(this.bufferDelay),
+    switchMap(ids => this.getProjects(ids)),
+    share(),
+  );
+
+  constructor() {
+    this.getVersionBufferResolver.subscribe();
+    this.getProjectBufferResolver.subscribe();
+  }
   private http = inject(HttpClient);
 
   public static get Instance() {
@@ -32,6 +60,14 @@ export class Modrinth {
   }
   get rateLimit_Reset(): number {
     return this._rateLimit_Reset;
+  }
+
+  /**
+   * Checks if the given object is an annotated error
+   * @param object The object to check
+   */
+  public isAnnotatedError(object: any): object is AnnotatedError {
+    return object && !!((object as AnnotatedError).error);
   }
 
   /**
@@ -130,26 +166,72 @@ export class Modrinth {
     return versions.map(this.parseVersion);
   }
 
-  /**
-   * Returns the project with the given slug
-   * @param slug The slug of the project
-   */
-  public getProject(slug: string): Observable<Project | AnnotatedError> {
+  public getProjects(ids: string[]): Observable<{[hash: string]: Project | AnnotatedError}> {
+    if (ids.length == 0) {
+      return of({});
+    }
+
     this.adjustRateLimit();
-    const url =`${this.modrinthAPIUrl}/project/${slug}`;
-    return this.http.get<Project>(url,{headers: this.headers}).pipe(map(this.parseProject), catchError(this.errorHandler<Project | AnnotatedError>()));
+    let url = `${this.modrinthAPIUrl}/projects?ids=["${ids.join('","')}"]`;
+    return this.http.get<Project[]>(url, {headers: this.headers, }).pipe(map(projects => {
+      let result: {[hash: string]: Project | AnnotatedError} = {};
+      projects.forEach(project => {
+        result[project.id] = this.parseProject(project);
+      });
+      return result;
+    }), catchError(this.errorHandler<{[hash: string]: Project | AnnotatedError}>()));
   }
 
   /**
-   * Returns the versions of the project with the given slug
-   * @param slug The slug of the project
+   * Returns the project with the given id
+   * @param id The id of the project
+   */
+  public getProject(id: string): Observable<Project | AnnotatedError> {
+    this.getProjectBuffer.next(id);
+
+    return this.getProjectBufferResolver.pipe(
+      filter(projects => projects[id] != undefined),
+      map(projects => projects[id]),
+      take(1)
+    );
+  }
+
+  /**
+   * Returns the versions of the project with the given id
+   * @param id The id of the project
    * @param version The accepted game version
    * @param loaders The accepted loaders
    */
-  public getVersionsFromSlug(slug: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
+  public getVersionsFromId(id: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
     this.adjustRateLimit();
-    const url = `${this.modrinthAPIUrl}/project/${slug}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase())[0]}"]` : "")
+    const url = `${this.modrinthAPIUrl}/project/${id}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase())[0]}"]` : "")
     return this.http.get<Version[]>(url, {headers: this.headers}).pipe(map(resp => this.parseVersions(resp)), catchError(this.errorHandler<Version[] | AnnotatedError>()));
+  }
+
+  /**
+   * Returns all versions for the given hashes as a map
+   * @param hashes The hashes of the versions
+   */
+  public getVersionsFromHashes(hashes: string[]): Observable<{[hash: string]: Version | AnnotatedError}> {
+    if (hashes.length == 0) {
+      return of({});
+    }
+
+    const url = `${this.modrinthAPIUrl}/version_files`;
+    return this.http.post<{[hash: string] : Version | AnnotatedError}>(url, {headers: this.headers, hashes: hashes, algorithm: 'sha1'})
+      .pipe(
+        map(versions => {
+          for (const hash of hashes) {
+            if (versions[hash] instanceof Object) {
+              versions[hash] = this.parseVersion(versions[hash] as Version);
+            } else {
+              versions[hash] = {error: versions[hash]??{message: "Unknown error", status: 404}} as AnnotatedError;
+            }
+          }
+          return versions as {[hash: string] : Version | AnnotatedError}
+        }),
+        catchError(this.errorHandler<{[hash: string] : Version | AnnotatedError}>())
+      );
   }
 
   /**
@@ -157,9 +239,13 @@ export class Modrinth {
    * @param hash The sha-1 hash of the binary representation of the mod file
    */
   public getVersionFromHash(hash: string): Observable<Version | AnnotatedError> {
-    this.adjustRateLimit();
-    const url = `${this.modrinthAPIUrl}/version_file/${hash}`;
-    return this.http.get<Version>(url, {headers: this.headers}).pipe(map(this.parseVersion), catchError(this.errorHandler<Version | AnnotatedError>()));
+    this.getVersionBuffer.next(hash);
+
+    return this.getVersionBufferResolver.pipe(
+      filter(versions => versions[hash] != undefined),
+      map(versions => versions[hash]),
+      take(1)
+    );
   }
 
   /**
@@ -169,13 +255,5 @@ export class Modrinth {
   public getVersionFromBuffer(buffer: ArrayBuffer): Observable<Version | AnnotatedError> {
     const fileHash = this.sha1(buffer);
     return this.getVersionFromHash(fileHash);
-  }
-
-  /**
-   * Checks if the given object is an annotated error
-   * @param object The object to check
-   */
-  public isAnnotatedError(object: any): object is AnnotatedError {
-    return !!((object as AnnotatedError).error);
   }
 }

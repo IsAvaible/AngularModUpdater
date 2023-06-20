@@ -19,7 +19,7 @@ export class VersionsService {
   }
 
   public init() {
-    const defaultVersion = '1.19.4';
+    const defaultVersion = '1.20.1';
     // Initially populate the list only with the previously selected version / default version
     this.versions$.next([{version: this.selectedVersion$.value ?? defaultVersion, selected: true, type: 'release'}, {version: 'Loading...', selected: false, type: 'release'}]);
     // Get the list of all minecraft versions from Mojang
