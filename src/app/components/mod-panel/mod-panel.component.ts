@@ -37,6 +37,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   versionsSubscription!: Subscription;
   loaderSubscription!: Subscription;
   private sha1 = require('js-sha1');
+  private finishedSubscription!: Subscription;
+  private percentSubscription!: Subscription;
 
 
   constructor() {
@@ -276,10 +278,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
     this.loadingPercent = 0;
     this.loading = true;
-    finished$.pipe(delay(500)).subscribe(() => {
+    if (this.finishedSubscription) this.finishedSubscription.unsubscribe();
+    if (this.percentSubscription) this.percentSubscription.unsubscribe();
+    this.finishedSubscription = finished$.pipe(delay(500)).subscribe(() => {
       this.loading = false;
     })
-    percent$.subscribe(percent => {
+    this.percentSubscription = percent$.subscribe(percent => {
       this.loadingPercent = percent;
     })
   }
