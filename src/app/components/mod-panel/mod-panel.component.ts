@@ -326,14 +326,18 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * Downloads multiple files from a remote url
    * If there are more than 3 files, it will create a zip file with all the mods
    */
-  downloadMultiple(files: { filename: string, url: string }[]) {
+  async downloadMultiple(files: { filename: string, url: string }[]) {
     if (files.length <= 3) {
       for (let file of files) window.open(file.url);
     } else {
       const zip = new JSZip();
+      let promises = [];
       for (let file of files) {
-        if (file != undefined) zip.file(file.filename, file.url);
+        if (file != undefined) {
+          promises.push(fetch(file.url).then(r => zip.file(file.filename, r.blob())));
+        }
       }
+      await Promise.all(promises);
       zip.generateAsync({type: "blob"}).then((content) => {
         saveAs(content, "mods.zip");
       });
