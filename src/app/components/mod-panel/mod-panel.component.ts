@@ -328,7 +328,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     } else {
       const zip = new JSZip();
       for (let file of files) {
-        zip.file(file!.filename, file.url);
+        if (file != undefined) zip.file(file.filename, file.url);
       }
       zip.generateAsync({type: "blob"}).then((content) => {
         saveAs(content, "mods.zip");
