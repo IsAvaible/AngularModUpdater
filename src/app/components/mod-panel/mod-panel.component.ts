@@ -196,7 +196,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                     return version;
                   }); // Annotate the status of the mod
                   extendedTargetVersionData[0].selected = true; // Select the first version by default
-                  this.availableMods.push({versions: extendedTargetVersionData, project: projectData});
+                  if (!this.availableMods.some(mod => mod.project.id == id)) { // The mod is not in the availableMods list
+                    this.availableMods.push({versions: extendedTargetVersionData, project: projectData});
+                  }
                 } else { // The mod is not available for the selected mc version
                   this.unavailableMods.push({file: file, slug: slug, project: projectData})
                 }
