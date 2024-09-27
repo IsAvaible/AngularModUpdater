@@ -142,7 +142,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         this.modrinth.getVersionFromHash(fileHash)
           .subscribe(versionData => {
             if (this.modrinth.isAnnotatedError(versionData)) { // The mod is not on Modrinth
-              if (versionData.error.status != 404) this.handleRequestError(file);
+              if (versionData.error.status == 410) { // The API has been deprecated
+                // Show error message
+                Swal.fire({
+                  position: 'top-end',
+                  icon: 'error',
+                  title: 'API Deprecated',
+                  text: 'The Modrinth API has been deprecated and is no longer available. Please create an issue on GitHub to notify the maintainer.',
+                  showConfirmButton: false,
+                  timer: 3000,
+                  backdrop: `rgba(0, 0, 0, 0.0)`
+                });
+              }
+              if (versionData.error.status != 404) {
+                this.handleRequestError(file);
+              }
               if (versionData.error.status != 0) {
                 this.unresolvedMods.push({file: file, slug: undefined, annotation: versionData});
               }
@@ -163,15 +177,25 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                 return;
               }
               const slug = projectData.slug;
-              const checkedLoader = (this.loader == Loader.quilt ? Loader.fabric : this.loader).toLowerCase() as Loader;
-              if (!projectData.loaders.includes(checkedLoader)) { // Check if the mod is available for the selected loader (Fabric mods are also available for Quilt)
+              // Check if the mod is available for the selected loader
+              if (! (projectData.loaders.includes(this.loader.toLowerCase() as Loader)
+                || (this.loader == Loader.quilt && projectData.loaders.includes(Loader.fabric.toLowerCase() as Loader))
+                || (this.loader == Loader.neoforge && projectData.loaders.includes(Loader.forge.toLowerCase() as Loader))
+              ) ) {
                 this.invalidLoaderMods.push({file: file, slug: slug, project: projectData});
                 observer.next(true);
                 observer.complete();
                 return;
               }
+              // Declare the loaders that are valid based on the selected loader
+              const validLoaders = [this.loader]
+              if (this.loader == Loader.quilt) {
+                validLoaders.push(Loader.fabric);
+              } else if (this.loader == Loader.neoforge) {
+                validLoaders.push(Loader.forge);
+              }
               // Get version data
-              this.modrinth.getVersionsFromId(id, mcVersion.version, this.loader == Loader.forge ? [Loader.forge] : [Loader.fabric, Loader.quilt]).subscribe(targetVersionData => {
+              this.modrinth.getVersionsFromId(id, mcVersion.version, validLoaders).subscribe(targetVersionData => {
                 if (this.modrinth.isAnnotatedError(targetVersionData)) {
                   if (targetVersionData.error.status != 404) this.handleRequestError(file);
                   if (targetVersionData.error.status != 0) {

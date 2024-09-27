@@ -204,7 +204,7 @@ export class Modrinth {
    */
   public getVersionsFromId(id: string, version: string, loaders: string[]): Observable<Version[] | AnnotatedError> {
     this.adjustRateLimit();
-    const url = `${this.modrinthAPIUrl}/project/${id}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase())[0]}"]` : "")
+    const url = `${this.modrinthAPIUrl}/project/${id}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase()).join('","')}"]` : "")
     return this.http.get<Version[]>(url, {headers: this.headers}).pipe(map(resp => this.parseVersions(resp)), catchError(this.errorHandler<Version[] | AnnotatedError>()));
   }
 
