@@ -16,7 +16,7 @@ import {
 } from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
-import {Project, Version, AnnotatedError} from "../../libraries/modrinth/types.modrinth";
+import {Project, Version, AnnotatedError, Modpack} from "../../libraries/modrinth/types.modrinth";
 import {View} from "../mod-card/mod-card.component";
 import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
@@ -158,15 +158,36 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     const fileHash = this.sha1(fileBuffer);
 
     try {
-      // Retrieve mod version data by hash
-      const versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+      let versionData: AnnotatedError | Version | Modpack;
+      let projectId: string;
 
-      if (this.modrinth.isAnnotatedError(versionData)) {
-        await this.handleAnnotatedError(versionData, file);
-        return true;
+      // If the file is a .mrpack
+      if (file.name.endsWith(".mrpack")) {
+        const modpack = await this.modrinth.parseMrpack(fileBuffer);
+        if (this.modrinth.isAnnotatedError(modpack)) {
+          await this.handleAnnotatedError(modpack, file);
+          return true;
+        } else {
+          versionData = modpack;
+          const slug = await this.modrinth.searchMrpackProjectId(modpack);
+          if (this.modrinth.isAnnotatedError(slug)) {
+            await this.handleAnnotatedError(slug, file);
+            return true;
+          }
+          projectId = slug;
+        }
+      } else {
+        // Retrieve mod version data by hash
+        versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+
+        if (this.modrinth.isAnnotatedError(versionData)) {
+          await this.handleAnnotatedError(versionData, file);
+          return true;
+        }
+
+        projectId = versionData.project_id;
       }
 
-      const projectId = versionData.project_id;
       const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
 
       if (this.modrinth.isAnnotatedError(projectData)) {
@@ -196,7 +217,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       }
 
       if (targetVersionData.length > 0) {
-        const annotatedVersions = this.annotateVersionStatus(versionData, targetVersionData as ExtendedVersion[]);
+        const annotatedVersions = this.annotateVersionStatus(versionData, targetVersionData as ExtendedVersion[], mcVersion.version);
 
         // Avoid duplicate entries in availableMods
         if (!this.availableMods.some((mod) => mod.project.id === projectId)) {
@@ -218,7 +239,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
   }
 
-// Helper function to check loader compatibility
+  // Helper function to check loader compatibility
   private isLoaderCompatible(loaders: string[]): boolean {
     return (
       loaders.includes(this.loader.toLowerCase() as Loader) ||
@@ -227,7 +248,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     );
   }
 
-// Helper function to get valid loaders based on selected loader
+  // Helper function to get valid loaders based on selected loader
   private getValidLoaders(): Loader[] {
     const validLoaders = [this.loader];
     if (this.loader === Loader.quilt) validLoaders.push(Loader.fabric);
@@ -235,20 +256,30 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     return validLoaders;
   }
 
-// Helper function to annotate version statuses
+  // Helper function to annotate version statuses
   private annotateVersionStatus(
     installedVersion: any,
-    targetVersions: ExtendedVersion[]
+    targetVersions: ExtendedVersion[],
+    targetedMcVersion: string
   ): ExtendedVersion[] {
     return targetVersions.map((version) => {
-      if (version.id === installedVersion.id) {
+      version.selected = version === targetVersions[0]; // Mark first version as selected
+
+      // Check if the uploaded mods minecraft version is lower than the selected version
+      const uploadedMcVersion = installedVersion.dependencies['minecraft'] || installedVersion.game_versions[installedVersion.game_versions.length-1];
+      console.log(uploadedMcVersion, targetedMcVersion, uploadedMcVersion > targetedMcVersion);
+      if (uploadedMcVersion > targetedMcVersion) {
+        version.versionStatus = VersionStatus.Unspecified;
+        return version;
+      }
+
+      if (version.id === installedVersion.id || version.id === installedVersion.versionId) {
         version.versionStatus = VersionStatus.Installed;
       } else if (version.date_published > installedVersion.date_published) {
         version.versionStatus = VersionStatus.Updated;
       } else {
         version.versionStatus = VersionStatus.Outdated;
       }
-      version.selected = version === targetVersions[0]; // Mark first version as selected
       return version;
     });
   }
@@ -426,5 +457,6 @@ export interface ExtendedVersion extends Version {
 export enum VersionStatus {
   Updated,
   Installed,
-  Outdated
+  Outdated,
+  Unspecified
 }

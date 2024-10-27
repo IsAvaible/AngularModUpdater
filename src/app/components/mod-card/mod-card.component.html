@@ -12,7 +12,7 @@
     </div>
     <p class="text-gray-700 dark:text-slate-200">{{project.description}}</p>
     <div class="flex flex-row gap-x-3 text-sm">
-      <span class="flex items-center gap-x-1">
+      <span class="flex flex-wrap items-center gap-x-1">
         <svg *ngIf="project.server_side !== 'unsupported'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
         <svg *ngIf="project.server_side === 'unsupported'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17 9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"></path></svg>
         <span [ngSwitch]="project.server_side">
@@ -31,7 +31,8 @@
         </svg>
         {{selectedVersion.version_type.charAt(0).toUpperCase() + selectedVersion.version_type.slice(1)}}
       </span>
-      <app-mod-status-label [status]="selectedVersion.versionStatus" [view]="view"/>
+      <app-mod-status-label *ngIf="selectedVersion.versionStatus != VersionStatus.Unspecified" [status]="selectedVersion.versionStatus" [view]="view"/>
+      <app-project-type-label [type]="project.project_type" [view]="view"/>
     </div>
   </div>
   <div class="flex flex-col justify-center flex-shrink items-center sm:items-start space-y-1 order-first sm:order-last">

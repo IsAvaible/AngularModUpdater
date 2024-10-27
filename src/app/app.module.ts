@@ -23,6 +23,7 @@ import { InfoTriangleComponent } from './components/info-triangle/info-triangle.
 import { InfoSectionComponent } from './components/info-section/info-section.component';
 import {MarkdownModule} from "ngx-markdown";
 import { ModStatusLabelComponent } from './components/mod-card/mod-status-label/mod-status-label.component';
+import { ProjectTypeLabelComponent } from "./components/mod-card/project-type-label/project-type-label.component";
 import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator.component';
 
 @NgModule({
@@ -42,6 +43,7 @@ import { LoadingIndicatorComponent } from './components/loading-indicator/loadin
     InfoTriangleComponent,
     InfoSectionComponent,
     ModStatusLabelComponent,
+    ProjectTypeLabelComponent,
     LoadingIndicatorComponent
   ],
   imports: [
