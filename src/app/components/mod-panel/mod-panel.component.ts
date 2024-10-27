@@ -1,6 +1,19 @@
 import {Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {FilesService} from "../../services/files.service";
-import {delay, finalize, forkJoin, map, Observable, of, Subject, Subscription, take, tap} from "rxjs";
+import {
+  delay,
+  finalize,
+  firstValueFrom,
+  forkJoin,
+  from,
+  map,
+  Observable,
+  of,
+  Subject,
+  Subscription,
+  take,
+  tap
+} from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
 import {Project, Version, AnnotatedError} from "../../libraries/modrinth/types.modrinth";
@@ -121,120 +134,143 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
   }
 
-  processFile(file: File, mcVersion: MinecraftVersion): Observable<boolean> {
-    return new Observable<boolean>(observer => {
-      const reader = new FileReader();  // Create a new FileReader for each file to allow parallel processing
-      reader.onload = (e) => {
-        if (e.target == null) {
-          console.log("Error: Could not read " + file.name);
-          this.unresolvedMods.push({
-            file: file,
-            slug: undefined,
-            annotation: {error: {status: 0, message: "Could not read file"}}
-          });
-          observer.next(true);
-          observer.complete();
-          return;
-        }
-        // Generate the file hash
-        const fileHash = this.sha1(e.target.result);
-        // Request Modrinth API for the mod with the given hash
-        this.modrinth.getVersionFromHash(fileHash)
-          .subscribe(versionData => {
-            if (this.modrinth.isAnnotatedError(versionData)) { // The mod is not on Modrinth
-              if (versionData.error.status == 410) { // The API has been deprecated
-                // Show error message
-                Swal.fire({
-                  position: 'top-end',
-                  icon: 'error',
-                  title: 'API Deprecated',
-                  text: 'The Modrinth API has been deprecated and is no longer available. Please create an issue on GitHub to notify the maintainer.',
-                  showConfirmButton: false,
-                  timer: 3000,
-                  backdrop: `rgba(0, 0, 0, 0.0)`
-                });
-              }
-              if (versionData.error.status != 404) {
-                this.handleRequestError(file);
-              }
-              if (versionData.error.status != 0) {
-                this.unresolvedMods.push({file: file, slug: undefined, annotation: versionData});
-              }
-              observer.next(true);
-              observer.complete();
-              return;
-            }
-            const id = versionData.project_id;
-            // Get project data
-            this.modrinth.getProject(id).subscribe(projectData => {
-              if (this.modrinth.isAnnotatedError(projectData)) {
-                if (projectData.error.status != 404) this.handleRequestError(file);
-                if (projectData.error.status != 0) {
-                  this.unresolvedMods.push({file: file, slug: id, annotation: projectData});
-                }
-                observer.next(true);
-                observer.complete();
-                return;
-              }
-              const slug = projectData.slug;
-              // Check if the mod is available for the selected loader
-              if (! (projectData.loaders.includes(this.loader.toLowerCase() as Loader)
-                || (this.loader == Loader.quilt && projectData.loaders.includes(Loader.fabric.toLowerCase() as Loader))
-                || (this.loader == Loader.neoforge && projectData.loaders.includes(Loader.forge.toLowerCase() as Loader))
-              ) ) {
-                this.invalidLoaderMods.push({file: file, slug: slug, project: projectData});
-                observer.next(true);
-                observer.complete();
-                return;
-              }
-              // Declare the loaders that are valid based on the selected loader
-              const validLoaders = [this.loader]
-              if (this.loader == Loader.quilt) {
-                validLoaders.push(Loader.fabric);
-              } else if (this.loader == Loader.neoforge) {
-                validLoaders.push(Loader.forge);
-              }
-              // Get version data
-              this.modrinth.getVersionsFromId(id, mcVersion.version, validLoaders).subscribe(targetVersionData => {
-                if (this.modrinth.isAnnotatedError(targetVersionData)) {
-                  if (targetVersionData.error.status != 404) this.handleRequestError(file);
-                  if (targetVersionData.error.status != 0) {
-                    this.unresolvedMods.push({file: file, slug: slug, annotation: targetVersionData});
-                  }
-                  observer.next(true);
-                  observer.complete();
-                  return;
-                }
-                if (targetVersionData.length > 0) { // The mod has one or more versions available for the selected mc version
-                  const installedVersion = versionData;
-                  const extendedTargetVersionData = (targetVersionData as ExtendedVersion[]).map(version => {
-                    if (version.id == installedVersion.id) {
-                      version.versionStatus = VersionStatus.Installed;
-                    } else {
-                      if (version.date_published > installedVersion.date_published) {
-                        version.versionStatus = VersionStatus.Updated;
-                      } else {
-                        version.versionStatus = VersionStatus.Outdated;
-                      }
-                    }
-                    return version;
-                  }); // Annotate the status of the mod
-                  extendedTargetVersionData[0].selected = true; // Select the first version by default
-                  if (!this.availableMods.some(mod => mod.project.id == id)) { // The mod is not in the availableMods list
-                    this.availableMods.push({versions: extendedTargetVersionData, project: projectData});
-                  }
-                } else { // The mod is not available for the selected mc version
-                  this.unavailableMods.push({file: file, slug: slug, project: projectData})
-                }
-                observer.next(true);
-                observer.complete();
-                return;
-              });
-            });
-          });
-      }
+  async processFile(file: File, mcVersion: MinecraftVersion): Promise<boolean> {
+    const reader = new FileReader();
+
+    // Wrapping FileReader in a Promise to make it awaitable
+    const fileBuffer = await new Promise<ArrayBuffer | null>((resolve, reject) => {
+      reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+      reader.onerror = () => reject(new Error(`Error reading file ${file.name}`));
       reader.readAsArrayBuffer(file);
-    })
+    });
+
+    if (!fileBuffer) {
+      console.error(`Could not read ${file.name}`);
+      this.unresolvedMods.push({
+        file,
+        slug: undefined,
+        annotation: {error: {status: 0, message: "Could not read file"}},
+      });
+      return true;
+    }
+
+    // Generate the file hash
+    const fileHash = this.sha1(fileBuffer);
+
+    try {
+      // Retrieve mod version data by hash
+      const versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+
+      if (this.modrinth.isAnnotatedError(versionData)) {
+        await this.handleAnnotatedError(versionData, file);
+        return true;
+      }
+
+      const projectId = versionData.project_id;
+      const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
+
+      if (this.modrinth.isAnnotatedError(projectData)) {
+        await this.handleAnnotatedError(projectData, file, projectId);
+        return true;
+      }
+
+      const slug = projectData.slug;
+
+      // Check if the mod is compatible with the current loader
+      if (!this.isLoaderCompatible(projectData.loaders)) {
+        this.invalidLoaderMods.push({file, slug, project: projectData});
+        return true;
+      }
+
+      // Define valid loaders based on selected loader
+      const validLoaders = this.getValidLoaders();
+
+      // Get versions based on Minecraft version and valid loaders
+      const targetVersionData = await firstValueFrom(
+        this.modrinth.getVersionsFromId(projectId, mcVersion.version, validLoaders)
+      );
+
+      if (this.modrinth.isAnnotatedError(targetVersionData)) {
+        await this.handleAnnotatedError(targetVersionData, file, slug);
+        return true;
+      }
+
+      if (targetVersionData.length > 0) {
+        const annotatedVersions = this.annotateVersionStatus(versionData, targetVersionData as ExtendedVersion[]);
+
+        // Avoid duplicate entries in availableMods
+        if (!this.availableMods.some((mod) => mod.project.id === projectId)) {
+          this.availableMods.push({versions: annotatedVersions, project: projectData});
+        }
+      } else {
+        this.unavailableMods.push({file, slug, project: projectData});
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error(`Error processing file ${file.name}:`, error);
+      this.unresolvedMods.push({
+        file,
+        slug: undefined,
+        annotation: {error: {status: 0, message: error.message || "Unknown error"}},
+      });
+      return true;
+    }
+  }
+
+// Helper function to check loader compatibility
+  private isLoaderCompatible(loaders: string[]): boolean {
+    return (
+      loaders.includes(this.loader.toLowerCase() as Loader) ||
+      (this.loader === Loader.quilt && loaders.includes(Loader.fabric.toLowerCase() as Loader)) ||
+      (this.loader === Loader.neoforge && loaders.includes(Loader.forge.toLowerCase() as Loader))
+    );
+  }
+
+// Helper function to get valid loaders based on selected loader
+  private getValidLoaders(): Loader[] {
+    const validLoaders = [this.loader];
+    if (this.loader === Loader.quilt) validLoaders.push(Loader.fabric);
+    else if (this.loader === Loader.neoforge) validLoaders.push(Loader.forge);
+    return validLoaders;
+  }
+
+// Helper function to annotate version statuses
+  private annotateVersionStatus(
+    installedVersion: any,
+    targetVersions: ExtendedVersion[]
+  ): ExtendedVersion[] {
+    return targetVersions.map((version) => {
+      if (version.id === installedVersion.id) {
+        version.versionStatus = VersionStatus.Installed;
+      } else if (version.date_published > installedVersion.date_published) {
+        version.versionStatus = VersionStatus.Updated;
+      } else {
+        version.versionStatus = VersionStatus.Outdated;
+      }
+      version.selected = version === targetVersions[0]; // Mark first version as selected
+      return version;
+    });
+  }
+
+  // Helper function to handle annotated errors
+  private async handleAnnotatedError(errorData: any, file: File, slug?: string) {
+    if (errorData.error.status === 410) {
+      await Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "API Deprecated",
+        text: "The Modrinth API has been deprecated. Please notify the maintainer on GitHub.",
+        showConfirmButton: false,
+        timer: 3000,
+        backdrop: "rgba(0, 0, 0, 0.0)",
+      });
+    } else if (errorData.error.status !== 404) {
+      this.handleRequestError(file);
+    }
+    if (errorData.error.status !== 0) {
+      this.unresolvedMods.push({file, slug, annotation: errorData});
+    }
   }
 
 
@@ -271,7 +307,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     let counter = 0;
     const percent$ = new Subject<number>();
     observablesArray = observablesArray.map((obs, index) =>
-      obs.pipe(
+      from(obs).pipe(
         finalize(() => {
           counter++;
           const percent = counter / observablesArray.length;
