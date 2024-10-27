@@ -406,6 +406,7 @@ export class Modrinth {
             return hit.project_id;
           }
         }
+        return searchResult.hits[0].project_id;
       }
     }
 
