@@ -267,8 +267,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
       // Check if the uploaded mods minecraft version is lower than the selected version
       const uploadedMcVersion = installedVersion.dependencies['minecraft'] || installedVersion.game_versions[installedVersion.game_versions.length-1];
-      console.log(uploadedMcVersion, targetedMcVersion, uploadedMcVersion > targetedMcVersion);
-      if (uploadedMcVersion > targetedMcVersion) {
+      if (uploadedMcVersion > targetedMcVersion || installedVersion.dependencies['minecraft']) {
         version.versionStatus = VersionStatus.Unspecified;
         return version;
       }
