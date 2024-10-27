@@ -161,32 +161,35 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       let versionData: AnnotatedError | Version | Modpack;
       let projectId: string;
 
-      // If the file is a .mrpack
-      if (file.name.endsWith(".mrpack")) {
-        const modpack = await this.modrinth.parseMrpack(fileBuffer);
-        if (this.modrinth.isAnnotatedError(modpack)) {
-          await this.handleAnnotatedError(modpack, file);
-          return true;
-        } else {
-          versionData = modpack;
-          const slug = await this.modrinth.searchMrpackProjectId(modpack);
-          if (this.modrinth.isAnnotatedError(slug)) {
-            await this.handleAnnotatedError(slug, file);
-            return true;
-          }
-          projectId = slug;
-        }
-      } else {
-        // Retrieve mod version data by hash
-        versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+      // Welp, this was unnecessary work. The API supports searching for the modpack by hash
+      // // If the file is a .mrpack
+      // if (file.name.endsWith(".mrpack")) {
+      //   const modpack = await this.modrinth.parseMrpack(fileBuffer);
+      //   if (this.modrinth.isAnnotatedError(modpack)) {
+      //     await this.handleAnnotatedError(modpack, file);
+      //     return true;
+      //   } else {
+      //     versionData = modpack;
+      //     const slug = await this.modrinth.searchMrpackProjectId(modpack);
+      //     if (this.modrinth.isAnnotatedError(slug)) {
+      //       await this.handleAnnotatedError(slug, file);
+      //       return true;
+      //     }
+      //     projectId = slug;
+      //   }
+      // } else {
+      //   versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+      // }
 
-        if (this.modrinth.isAnnotatedError(versionData)) {
-          await this.handleAnnotatedError(versionData, file);
-          return true;
-        }
+      // Retrieve mod version data by hash
+      versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
 
-        projectId = versionData.project_id;
+      if (this.modrinth.isAnnotatedError(versionData)) {
+        await this.handleAnnotatedError(versionData, file);
+        return true;
       }
+
+      projectId = versionData.project_id;
 
       const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
 
