@@ -1,11 +1,12 @@
 import {Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {FilesService} from "../../services/files.service";
 import {
+  concatMap,
   delay,
   finalize,
   firstValueFrom,
   forkJoin,
-  from,
+  from, last,
   map,
   Observable,
   of,
@@ -137,7 +138,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   async processFile(file: File, mcVersion: MinecraftVersion): Promise<boolean> {
     const reader = new FileReader();
 
-    // Wrapping FileReader in a Promise to make it awaitable
     const fileBuffer = await new Promise<ArrayBuffer | null>((resolve, reject) => {
       reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
       reader.onerror = () => reject(new Error(`Error reading file ${file.name}`));
@@ -149,96 +149,82 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       this.unresolvedMods.push({
         file,
         slug: undefined,
-        annotation: {error: {status: 0, message: "Could not read file"}},
+        annotation: {error: {status: 0, message: "Could not read file"}}
       });
       return true;
     }
 
-    // Generate the file hash
     const fileHash = this.sha1(fileBuffer);
 
     try {
-      let versionData: AnnotatedError | Version | Modpack;
-      let projectId: string;
+      const versionData = await this.loadVersionData(fileHash, file);
+      if (!versionData) return true; // Stop if error occurred during getVersion
 
-      // Welp, this was unnecessary work. The API supports searching for the modpack by hash
-      // // If the file is a .mrpack
-      // if (file.name.endsWith(".mrpack")) {
-      //   const modpack = await this.modrinth.parseMrpack(fileBuffer);
-      //   if (this.modrinth.isAnnotatedError(modpack)) {
-      //     await this.handleAnnotatedError(modpack, file);
-      //     return true;
-      //   } else {
-      //     versionData = modpack;
-      //     const slug = await this.modrinth.searchMrpackProjectId(modpack);
-      //     if (this.modrinth.isAnnotatedError(slug)) {
-      //       await this.handleAnnotatedError(slug, file);
-      //       return true;
-      //     }
-      //     projectId = slug;
-      //   }
-      // } else {
-      //   versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
-      // }
+      const projectData = await this.loadProjectData(versionData.project_id, file);
+      if (!projectData) return true; // Stop if error occurred during getProject
 
-      // Retrieve mod version data by hash
-      versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
-
-      if (this.modrinth.isAnnotatedError(versionData)) {
-        await this.handleAnnotatedError(versionData, file);
-        return true;
-      }
-
-      projectId = versionData.project_id;
-
-      const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
-
-      if (this.modrinth.isAnnotatedError(projectData)) {
-        await this.handleAnnotatedError(projectData, file, projectId);
-        return true;
-      }
-
-      const slug = projectData.slug;
-
-      // Check if the mod is compatible with the current loader
-      if (!this.isLoaderCompatible(projectData.loaders)) {
-        this.invalidLoaderMods.push({file, slug, project: projectData});
-        return true;
-      }
-
-      // Define valid loaders based on selected loader
-      const validLoaders = this.getValidLoaders();
-
-      // Get versions based on Minecraft version and valid loaders
-      const targetVersionData = await firstValueFrom(
-        this.modrinth.getVersionsFromId(projectId, mcVersion.version, validLoaders)
+      const versionsData = await this.loadVersionsData(
+        projectData.id, mcVersion.version, this.getValidLoaders(), file
       );
+      if (!versionsData) return true; // Stop if error occurred during getVersions
 
-      if (this.modrinth.isAnnotatedError(targetVersionData)) {
-        await this.handleAnnotatedError(targetVersionData, file, slug);
-        return true;
-      }
-
-      if (targetVersionData.length > 0) {
-        const annotatedVersions = this.annotateVersionStatus(versionData, targetVersionData as ExtendedVersion[], mcVersion.version);
-
-        // Avoid duplicate entries in availableMods
-        if (!this.availableMods.some((mod) => mod.project.id === projectId)) {
-          this.availableMods.push({versions: annotatedVersions, project: projectData});
-        }
-      } else {
-        this.unavailableMods.push({file, slug, project: projectData});
-      }
-
+      this.addToAvailableMods(projectData, versionsData, versionData);
       return true;
     } catch (error: any) {
       console.error(`Error processing file ${file.name}:`, error);
       this.unresolvedMods.push({
         file,
         slug: undefined,
-        annotation: {error: {status: 0, message: error.message || "Unknown error"}},
+        annotation: {error: {status: 0, message: error.message || "Unknown error"}}
       });
       return true;
+    }
+  }
+
+  // Helper function to load version data
+  private async loadVersionData(fileHash: string, file: File) {
+    const versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+    if (this.modrinth.isAnnotatedError(versionData)) {
+      await this.handleAnnotatedError(versionData, file);
+      return null;
+    }
+    return versionData;
+  }
+
+  // Helper function to load project data
+  private async loadProjectData(projectId: string, file: File) {
+    const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
+    if (this.modrinth.isAnnotatedError(projectData)) {
+      await this.handleAnnotatedError(projectData, file, projectId);
+      return null;
+    }
+
+    if (!this.isLoaderCompatible(projectData.loaders)) {
+      this.invalidLoaderMods.push({file, slug: projectData.slug, project: projectData});
+      return null;
+    }
+    return projectData;
+  }
+
+  // Helper function to load versions data
+  private async loadVersionsData(
+    projectId: string, version: string, validLoaders: string[], file: File
+  ) {
+    const targetVersionData = await firstValueFrom(
+      this.modrinth.getVersionsFromId(projectId, version, validLoaders)
+    );
+    if (this.modrinth.isAnnotatedError(targetVersionData)) {
+      await this.handleAnnotatedError(targetVersionData, file);
+      return null;
+    }
+    return targetVersionData.length > 0 ? targetVersionData : null;
+  }
+
+  // Helper function to add project and versions data to availableMods
+  private addToAvailableMods(projectData: Project, versionsData: Version[], versionData: Version) {
+    const annotatedVersions = this.annotateVersionStatus(versionData, versionsData as ExtendedVersion[], versionData.id);
+    if (!this.availableMods.some((mod) => mod.project.id === projectData.id)) {
+      this.availableMods.push({versions: annotatedVersions, project: projectData});
     }
   }
 
@@ -315,8 +301,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     let mcVersion: MinecraftVersion = this.mcVersions.find(v => v.selected)!;  // Get the selected version
 
     this.toProcess = [...new Set(this.files)]  // Remove duplicates (redundant)
-    if (this.toProcess.length > 295) { // Limit the number of files to process to 295
-      const message = `${this.toProcess.length - 295} file` + (this.toProcess.length - 295 > 1 ? "s" : "") + " will not be processed to prevent rate limiting";
+    if (this.toProcess.length > 290) { // Limit the number of files to process to 295
+      const message = `${this.toProcess.length - 290} file` + (this.toProcess.length - 290 > 1 ? "s" : "") + " will not be processed to prevent rate limiting";
       console.log(message);
       Swal.fire({
         position: 'top-end',
@@ -326,41 +312,51 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         timer: 3000,
         backdrop: `rgba(0, 0, 0, 0.0)`
       })
-      this.toProcess.splice(294);
+      this.toProcess.splice(289);
     }
+
     const anyToProcess = this.toProcess.length > 0;
     if (!anyToProcess) {
       return [anyToProcess, of(true), of(1)];
     }
-    let observablesArray = [];
-    for (const file of this.toProcess) {
-      observablesArray.push(this.processFile(file, mcVersion))
-    }
 
-    let counter = 0;
+    // Set chunk size
+    const CHUNK_SIZE = 30;
+    let processedCounter = 0;
     const percent$ = new Subject<number>();
-    observablesArray = observablesArray.map((obs, index) =>
-      from(obs).pipe(
-        finalize(() => {
-          counter++;
-          const percent = counter / observablesArray.length;
-          percent$.next(percent);
 
-          this.processedFilesNames.push(this.toProcess[index].name)
-        })
-      )
+    // Helper function to process a chunk of files
+    const processChunk = (filesChunk: File[]): Observable<any> => {
+      const chunkObservables = filesChunk.map(file =>
+        from(this.processFile(file, mcVersion)).pipe(
+          tap(() => processedCounter++),
+          finalize(() => {
+            console.log(processedCounter, this.toProcess.length);
+            const percent = processedCounter / this.toProcess.length;
+            percent$.next(percent);
+            this.processedFilesNames.push(file.name);
+          })
+        )
+      );
+      return forkJoin(chunkObservables);  // Wait for all files in chunk to complete
+    };
+
+    // Create batches of files to process in chunks
+    const chunkedObservables = Array.from({ length: Math.ceil(this.toProcess.length / CHUNK_SIZE) }, (_, i) =>
+      processChunk(this.toProcess.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE))
     );
 
-    const finalResult$ = forkJoin(observablesArray).pipe(
+    const finalResult$ = from(chunkedObservables).pipe(
+      concatMap(chunkObservable => chunkObservable),  // Process each chunk sequentially
+      last(),  // Wait for the last chunk to complete
       map(() => true),
       tap(() => {
-        percent$.next(1); // 100% completion
+        percent$.next(1);  // 100% completion
         percent$.complete();
-        // Remove all processed files from the files list
-        this.filesService.setFiles(this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1));
+        // Remove processed files from the files list
+        this.filesService.setFiles(this.files.filter(file => this.processedFilesNames.indexOf(file.name) === -1));
         this.toProcess = [];
-      }),
-      take(1)
+      })
     );
 
     return [anyToProcess, finalResult$, percent$];
