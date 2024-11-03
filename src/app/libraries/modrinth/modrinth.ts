@@ -9,16 +9,16 @@ import {
 } from "./types.modrinth";
 import {
   bufferTime,
-  catchError, defaultIfEmpty,
+  catchError, defaultIfEmpty, delay,
   filter,
   firstValueFrom,
-  map,
+  map, MonoTypeOperatorFunction,
   Observable,
-  of,
+  of, retryWhen, scan,
   share,
   Subject,
   switchMap,
-  take, tap
+  take, tap, timeout
 } from "rxjs";
 import {HttpClient, HttpErrorResponse, HttpHeaders, HttpParams, HttpResponse} from "@angular/common/http";
 import Swal from "sweetalert2";
@@ -42,7 +42,7 @@ export class Modrinth {
   private sha1 = require('js-sha1');  // SHA1 hashing function
   private intervalRequestStart: Date | null = null; // Date of the first request in the current interval
 
-  public bufferDelay = 1000;
+  public bufferDelay = 2000;
 
   private getVersionBuffer = new Subject<string>();
   private getVersionBufferResolver = this.getVersionBuffer.pipe(
@@ -188,6 +188,25 @@ export class Modrinth {
     }, 1000);
   }
 
+
+  /**
+   * Retries the request with a backoff strategy
+   * @param maxRetries The maximum number of retries
+   * @param delayMs The delay in milliseconds
+   * @private
+   */
+  private retryWithBackoff(maxRetries: number, delayMs: number) {
+    return retryWhen(errors =>
+      errors.pipe(
+        scan((acc, error) => {
+          if (acc >= maxRetries) throw error;
+          return acc + 1;
+        }, 0),
+        delay(delayMs)
+      )
+    );
+  }
+
   private parseProject(project: Project): Project {
     project.published = new Date(project.published);
     project.updated = new Date(project.updated);
@@ -211,7 +230,10 @@ export class Modrinth {
 
     let url = `${this.modrinthAPIUrl}/projects?ids=["${ids.join('","')}"]`;
     return this.http.get<Project[]>(url, {headers: this.headers, observe: 'response'}).pipe(
-      map(resp => {
+      timeout(10000),
+      // @ts-ignore
+      this.retryWithBackoff<Project[]>(3, 1000),
+      map((resp: HttpResponse<Project[]>) => {
         // Adjust the rate limit based on the response headers
         this.adjustRateLimit(resp.headers);
         // Process the response body
@@ -252,6 +274,9 @@ export class Modrinth {
     const url = `${this.modrinthAPIUrl}/project/${id}/version?game_versions=["${version}"]` + (loaders.length ? `&loaders=["${loaders.map(loader => loader.toLowerCase()).join('","')}"]` : "")
     return this.http.get<Version[]>(url, {headers: this.headers, observe: 'response'})
       .pipe(
+        timeout(10000),
+        // @ts-ignore
+        this.retryWithBackoff(3, 1000),
         map((resp: HttpResponse<Version[]>) => {
           // Adjust the rate limit based on the response headers
           this.adjustRateLimit(resp.headers);
@@ -278,7 +303,10 @@ export class Modrinth {
       algorithm: 'sha1'
     }, {observe: 'response'})
       .pipe(
-        map(resp => {
+        timeout(10000),
+        // @ts-ignore
+        this.retryWithBackoff(3, 1000),
+        map((resp: HttpResponse<{ [hash: string]: Version | AnnotatedError }>) => {
           // Adjust the rate limit based on the response headers
           this.adjustRateLimit(resp.headers);
           // Process the response body
@@ -290,7 +318,7 @@ export class Modrinth {
               versions[hash] = {error: versions[hash] ?? {message: "Unknown error", status: 404}} as AnnotatedError;
             }
           }
-          return versions as { [hash: string]: Version | AnnotatedError }
+          return versions;
         }),
         catchError(this.errorHandler<{ [hash: string]: Version | AnnotatedError }>())
       );
@@ -348,6 +376,9 @@ export class Modrinth {
 
     // Make the HTTP GET request with the constructed parameters
     return this.http.get<SearchResult>(`${this.modrinthAPIUrl}/search`, {params: httpParams}).pipe(
+      timeout(10000),
+      // @ts-ignore
+      this.retryWithBackoff(3, 1000),
       catchError((error) => {
         // Wrap the error in an AnnotatedError and return it
         return of({error} as AnnotatedError);
