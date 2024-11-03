@@ -17,7 +17,7 @@ import {
 } from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
-import {Project, Version, AnnotatedError, Modpack} from "../../libraries/modrinth/types.modrinth";
+import {Project, Version, AnnotatedError, Modpack, ProjectType} from "../../libraries/modrinth/types.modrinth";
 import {View} from "../mod-card/mod-card.component";
 import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
@@ -174,8 +174,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       const projectData = await this.loadProjectData(versionData.project_id, file);
       if (!projectData) return true; // Stop if error occurred during getProject
 
+      const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type);
+
       const versionsData = await this.loadVersionsData(
-        projectData.id, mcVersion.version, this.getValidLoaders(), file
+        projectData.id, mcVersion.version, ignoreLoader ? [] : this.getValidLoaders(), file
       );
       if (!versionsData) return true; // Stop if error occurred during getVersions
 
@@ -220,7 +222,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    if (!this.isLoaderCompatible(projectData.loaders)) {
+    if ([ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type) && !this.isLoaderCompatible(projectData.loaders)) {
       this.invalidLoaderMods.push({file, slug: projectData.slug, project: projectData});
       return null;
     }
@@ -390,7 +392,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         modHashes.push(...modpack.files.map(mod => ({
           hash: mod.hashes['sha1'],
           name: mod.name || mod.path.split('/').pop() || 'Unknown mod',
-          modpackFile: jsonFile.name
+          modpackFile: modpack.name ?? jsonFile.name
         })));
         this.processedFilesNames.push(jsonFile.name);
       } catch (error) {

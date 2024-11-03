@@ -1,6 +1,5 @@
 import {Component, Input} from '@angular/core';
 import {View} from "../mod-card.component";
-import {VersionStatus} from "../../mod-panel/mod-panel.component";
 import {ProjectType} from "../../../libraries/modrinth/types.modrinth";
 
 @Component({
