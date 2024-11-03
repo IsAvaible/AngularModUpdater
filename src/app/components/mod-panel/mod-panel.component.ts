@@ -159,7 +159,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           slug: undefined,
           annotation: {error: {status: 0, message: "Could not read file"}}
         });
-        return true;
+        return false;
       }
 
       fileHash = this.sha1(fileBuffer);
@@ -169,17 +169,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
     try {
       const versionData = await this.loadVersionData(fileHash, file);
-      if (!versionData) return true; // Stop if error occurred during getVersion
+      if (!versionData) return false; // Stop if error occurred during getVersion
 
       const projectData = await this.loadProjectData(versionData.project_id, file);
-      if (!projectData) return true; // Stop if error occurred during getProject
+      if (!projectData) return false; // Stop if error occurred during getProject
 
       const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type);
 
       const versionsData = await this.loadVersionsData(
         projectData.id, mcVersion.version, ignoreLoader ? [] : this.getValidLoaders(), file
       );
-      if (!versionsData) return true; // Stop if error occurred during getVersions
+      if (versionsData == null) return false; // Stop if error occurred during getVersions
+      else if (versionsData.length == 0) {
+        this.unavailableMods.push({file, slug: projectData.slug, project: projectData});
+        return false;
+      }
 
       this.addToAvailableMods(projectData, versionsData, versionData);
       return true;
@@ -190,7 +194,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         slug: undefined,
         annotation: {error: {status: 0, message: error.message || "Unknown error"}}
       });
-      return true;
+      return false;
     }
   }
 
@@ -247,7 +251,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       await this.handleAnnotatedError(targetVersionData, file);
       return null;
     }
-    return targetVersionData.length > 0 ? targetVersionData : null;
+    return targetVersionData;
   }
 
   /**
@@ -304,8 +308,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       version.selected = version === targetVersions[0]; // Mark first version as selected
 
       // Check if the uploaded mods minecraft version is lower than the selected version
-      const uploadedMcVersion = installedVersion.dependencies['minecraft'] || installedVersion.game_versions[installedVersion.game_versions.length - 1];
-      if (uploadedMcVersion > targetedMcVersion || installedVersion.dependencies['minecraft']) {
+      const uploadedMcVersion = installedVersion.game_versions[installedVersion.game_versions.length - 1] || installedVersion.dependencies['minecraft'];
+      if (uploadedMcVersion > targetedMcVersion) {
         version.versionStatus = VersionStatus.Unspecified;
         return version;
       }
@@ -363,7 +367,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     let mcVersion: MinecraftVersion = this.mcVersions.find(v => v.selected)!;  // Get the selected version
 
     // Process JSON files first to extract modpack information
-    const jsonFiles = this.files.filter(file => file.name.endsWith('.json'));
+    const jsonFiles = this.files.filter(file => file.type == 'application/json');
     const modHashes: Array<{hash: string, name: string, modpackFile: string}> = [];
 
     for (const jsonFile of jsonFiles) {
