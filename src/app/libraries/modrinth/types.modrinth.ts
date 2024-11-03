@@ -95,6 +95,7 @@ export interface Modpack {
   versionId: string;
   dependencies: { [key: string]: string };
   files: Array<{
+    name: string;
     path: string;
     hashes: { [algorithm: string]: string };
     downloads: string[];
