@@ -259,7 +259,7 @@ export class Modrinth {
     return this.getProjectBufferResolver.pipe(
       filter(projects => projects[id] != undefined),
       map(projects => projects[id]),
-      defaultIfEmpty({ error: { message: 'Project not found', status: 404 } } as AnnotatedError),
+      defaultIfEmpty({error: {message: 'Project not found', status: 404}} as AnnotatedError),
       take(1)
     );
   }
@@ -386,28 +386,33 @@ export class Modrinth {
     );
   }
 
-  public async parseMrpack(buffer: ArrayBuffer): Promise<Modpack | AnnotatedError> {
-    // Load the zip file from the provided ArrayBuffer
-    const zip = await new JSZip().loadAsync(buffer);
+  public async parseMrpack(buffer: ArrayBuffer, isJson: boolean = false): Promise<Modpack | AnnotatedError> {
+    let json: any;
+    if (!isJson) {
+      // Load the zip file from the provided ArrayBuffer
+      const zip = await new JSZip().loadAsync(buffer);
 
-    // Check if the 'modrinth.index.json' file exists in the archive
-    const indexFile = zip.file('modrinth.index.json');
-    if (!indexFile) {
-      return {error: {message: 'modrinth.index.json not found in the archive', status: 404}};
+      // Check if the 'modrinth.index.json' file exists in the archive
+      const indexFile = zip.file('modrinth.index.json');
+      if (!indexFile) {
+        return {error: {message: 'modrinth.index.json not found in the archive', status: 404}};
+      }
+
+      // Parse the JSON content of 'modrinth.index.json'
+      const indexData = await indexFile.async('string');
+      json = JSON.parse(indexData);
+    } else {
+      json = JSON.parse(new TextDecoder().decode(buffer));
     }
-
-    // Parse the JSON content of 'modrinth.index.json'
-    const indexData = await indexFile.async('string');
-    const indexJson = JSON.parse(indexData);
 
     // Extract fields from indexJson to create the Modpack object
     const modpack: Modpack = {
-      formatVersion: indexJson.formatVersion,
-      name: indexJson.name,
-      versionId: indexJson.versionId,
-      dependencies: indexJson.dependencies || [],
-      game: indexJson.game,
-      files: indexJson.files.map((file: any) => ({
+      formatVersion: json.formatVersion,
+      name: json.name,
+      versionId: json.versionId,
+      dependencies: json.dependencies || [],
+      game: json.game,
+      files: json.files.map((file: any) => ({
         path: file.path,
         hashes: file.hashes,
         downloads: file.downloads,

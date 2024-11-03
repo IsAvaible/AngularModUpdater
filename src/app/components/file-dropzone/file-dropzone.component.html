@@ -1,4 +1,4 @@
-<ngx-dropzone (change)="onSelect($event)" [multiple]="true" accept=".jar,.mrpack" class="max-w-[75rem] overflow-x-scroll overflow-y-clip important dark:!bg-slate-900 dark:!text-slate-200 dark:!border-slate-300">
+<ngx-dropzone (change)="onSelect($event)" [multiple]="true" accept=".jar,.mrpack,.json" class="max-w-[75rem] overflow-x-scroll overflow-y-clip important dark:!bg-slate-900 dark:!text-slate-200 dark:!border-slate-300">
   <ngx-dropzone-label class="p-4">Upload your mod(s)</ngx-dropzone-label>
   <ngx-dropzone-preview *ngFor="let f of files" [removable]="true" (removed)="onRemove(f)" class="bg-gray-100 overflow-x-clip dark:bg-slate-800 dark:text-slate-200" style="background-image: none">
     <ngx-dropzone-label>{{ f.name }}</ngx-dropzone-label>
