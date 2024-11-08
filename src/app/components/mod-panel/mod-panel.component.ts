@@ -17,7 +17,13 @@ import {
 } from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
-import {ModrinthProject, ModrinthVersion, AnnotatedError, Modpack, ProjectType} from "../../libraries/modrinth/types.modrinth";
+import {
+  ModrinthProject,
+  ModrinthVersion,
+  AnnotatedError,
+  Modpack,
+  ProjectType
+} from "../../libraries/modrinth/types.modrinth";
 import {View} from "../mod-card/mod-card.component";
 import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
@@ -184,7 +190,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     try {
       // Try Modrinth first
       const modrinthResult = await this.tryModrinth(fileHash, file, mcVersion);
-      if (modrinthResult) return true;
+      if (modrinthResult) {
+        return true;
+      }
 
       // If Curseforge support is not enabled return false
       if (!this.curseforgeSupport) {
@@ -259,7 +267,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
 
     // Check if the mod has files for the selected loader
-    const targetVersionsLoader = mod.latestFilesIndexes.filter(f => this.interoperability.convertCurseforgeLoaderToModrinthLoader(f.modLoader) == this.loader);
+    const targetVersionsLoader = mod.latestFilesIndexes.filter(f => (this.interoperability.convertCurseforgeLoaderToModrinthLoader(f.modLoader) || this.loader) == this.loader);
     if (targetVersionsLoader.length == 0) {
       if (this.invalidLoaderMods.some(m => m.file == file) || this.unavailableMods.some(m => m.file == file)) {
         return false;
@@ -314,7 +322,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     return true;
   }
 
-    /**
+  /**
    * Loads version data from the modrinth API
    * @param fileHash The hash of the file
    * @param file The file to process
@@ -494,7 +502,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
     // Process JSON files first to extract modpack information
     const jsonFiles = this.files.filter(file => file.type == 'application/json');
-    const modHashes: Array<{hash: string, name: string, modpackFile: string}> = [];
+    const modHashes: Array<{ hash: string, name: string, modpackFile: string }> = [];
 
     for (const jsonFile of jsonFiles) {
       try {
@@ -602,7 +610,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
     // Create batches of items to process in chunks
     const chunkedObservables = Array.from(
-      { length: Math.ceil(allItems.length / CHUNK_SIZE) },
+      {length: Math.ceil(allItems.length / CHUNK_SIZE)},
       (_, i) => processChunk(allItems.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE))
     );
 
