@@ -26,7 +26,6 @@ import {HttpClient, HttpErrorResponse, HttpResponse} from "@angular/common/http"
 import {inject} from "@angular/core";
 import Swal from "sweetalert2";
 import compute_fingerprint from "./fingerprint";
-import {environment} from "../../../environments/environment";
 
 /**
  * Wrapper around the Curseforge API.
@@ -39,7 +38,7 @@ export class Curseforge {
   public headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
-    "x-api-key": environment.CURSEFORGE_API_KEY
+    "x-api-key": window.atob("JDJhJDEwJEN0ZmFPQTRIT1phbXZTMXphVHUwLnVoTS51VzlNNzBQOGRyZnF2WUptOFNXdy5yWTlPSk1t")
   };
 
   public bufferDelay = 2000;
