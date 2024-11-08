@@ -7,7 +7,7 @@
   </div>
   <div class="flex flex-col flex-grow order-last sm:order-first">
     <div class="flex flex-row gap-x-1 items-baseline">
-      <h2 class="text-lg font-bold dark:text-slate-100"><a class="hover:underline" href="https://modrinth.com/mod/{{project.slug}}" target="_blank" referrerpolicy="no-referrer">{{project.title}}</a></h2>
+      <h2 class="text-lg font-bold dark:text-slate-100"><a class="hover:underline" href="{{project.project_url}}" target="_blank" referrerpolicy="no-referrer">{{project.title}}</a></h2>
       <p>by <a class="underline" href="https://modrinth.com/user/{{selectedVersion.author_id}}" title="Open the Author's Modrinth Page" target="_blank" referrerpolicy="no-referrer">{{selectedVersion.author_id}}</a></p>
     </div>
     <p class="text-gray-700 dark:text-slate-200">{{project.description}}</p>

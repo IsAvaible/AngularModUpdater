@@ -17,13 +17,17 @@ import {
 } from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
-import {Project, Version, AnnotatedError, Modpack, ProjectType} from "../../libraries/modrinth/types.modrinth";
+import {ModrinthProject, ModrinthVersion, AnnotatedError, Modpack, ProjectType} from "../../libraries/modrinth/types.modrinth";
 import {View} from "../mod-card/mod-card.component";
 import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
 import {Loader, LoaderService} from "../../services/loader.service";
 import Swal from "sweetalert2";
 import {ModrinthService} from "../../services/modrinth.service";
+import {CurseforgeService} from "../../services/curseforge.service";
+import {InteroperabilityService} from "../../services/interoperability.service";
+import {CurseforgeFile} from "../../libraries/curseforge/types.curseforge";
+import {CurseforgeSupportService} from "../../services/curseforgeSupport.service";
 
 @Component({
   selector: 'app-mod-panel',
@@ -31,9 +35,9 @@ import {ModrinthService} from "../../services/modrinth.service";
   styleUrls: ['./mod-panel.component.css'],
 })
 export class ModPanelComponent implements OnInit, OnDestroy {
-  availableMods: { versions: ExtendedVersion[], project: Project }[] = [];  // Stores all mods that are available for the selected mc version
-  unavailableMods: { file: File, slug: string, project: Project }[] = [];  // Stores all mods that are not available for the selected mc version
-  invalidLoaderMods: { file: File, slug: string, project: Project }[] = [];  // Stores all mods that are not available for the selected loader
+  availableMods: { versions: ExtendedVersion[], project: ModrinthProject }[] = [];  // Stores all mods that are available for the selected mc version
+  unavailableMods: { file: File, project_url: string, project: ModrinthProject }[] = [];  // Stores all mods that are not available for the selected mc version
+  invalidLoaderMods: { file: File, project_url: string, project: ModrinthProject }[] = [];  // Stores all mods that are not available for the selected loader
   unresolvedMods: { file: File, slug: string | undefined, annotation: AnnotatedError | null }[] = [];  // Stores all mods that could not be resolved (network error, etc.)
 
   loading = false; // Whether the site is currently processing mods
@@ -46,10 +50,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   toProcess: File[] = [];
   mcVersions: MinecraftVersion[] = [];
   loader!: Loader;
+  curseforgeSupport: boolean = false;
   availableModsView: View = window.innerWidth < 1200 ? View.Grid : View.List;
   filesSubscription!: Subscription;
   versionsSubscription!: Subscription;
   loaderSubscription!: Subscription;
+  curseforgeSupscription!: Subscription;
   private sha1 = require('js-sha1');
   private finishedSubscription!: Subscription;
   private percentSubscription!: Subscription;
@@ -61,8 +67,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private filesService = inject(FilesService);
   private versionsService = inject(VersionsService);
   private loaderService = inject(LoaderService);
+  private curseforgeSupportService = inject(CurseforgeSupportService);
   private http = inject(HttpClient);
   private modrinth = inject(ModrinthService);
+  private curseforge = inject(CurseforgeService);
+  private interoperability = inject(InteroperabilityService);
 
   /**
    * Resets all lists
@@ -89,6 +98,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       this.loader = loader;
       this.resetLists()
     })
+    this.curseforgeSupscription = this.curseforgeSupportService.support.subscribe(support => {
+      this.curseforgeSupport = support;
+    });
   }
 
   ngOnDestroy() {
@@ -96,6 +108,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.filesSubscription.unsubscribe();
     this.versionsSubscription.unsubscribe();
     this.loaderSubscription.unsubscribe();
+    this.curseforgeSupscription.unsubscribe();
   }
 
   /**
@@ -136,7 +149,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Processes a file
+   * Processes a file using Modrinth API with Curseforge fallback
    * @param file The file to process
    * @param mcVersion The selected minecraft version
    * @param hash The hash of the file
@@ -144,9 +157,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   async processFile(file: File, mcVersion: MinecraftVersion, hash?: string): Promise<boolean> {
     const reader = new FileReader();
     let fileHash: string;
+    let fileBuffer: ArrayBuffer | null = null;
 
     if (hash == null) {
-      const fileBuffer = await new Promise<ArrayBuffer | null>((resolve, reject) => {
+      fileBuffer = await new Promise<ArrayBuffer | null>((resolve, reject) => {
         reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
         reader.onerror = () => reject(new Error(`Error reading file ${file.name}`));
         reader.readAsArrayBuffer(file);
@@ -168,25 +182,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const versionData = await this.loadVersionData(fileHash, file);
-      if (!versionData) return false; // Stop if error occurred during getVersion
+      // Try Modrinth first
+      const modrinthResult = await this.tryModrinth(fileHash, file, mcVersion);
+      if (modrinthResult) return true;
 
-      const projectData = await this.loadProjectData(versionData.project_id, file);
-      if (!projectData) return false; // Stop if error occurred during getProject
-
-      const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type);
-
-      const versionsData = await this.loadVersionsData(
-        projectData.id, mcVersion.version, ignoreLoader ? [] : this.getValidLoaders(), file
-      );
-      if (versionsData == null) return false; // Stop if error occurred during getVersions
-      else if (versionsData.length == 0) {
-        this.unavailableMods.push({file, slug: projectData.slug, project: projectData});
+      // If Curseforge support is not enabled return false
+      if (!this.curseforgeSupport) {
         return false;
       }
+      // If Modrinth fails, and we have the file buffer, try Curseforge
+      if (fileBuffer) {
+        const curseforgeResult = await this.tryCurseforge(fileBuffer, file, mcVersion);
+        if (curseforgeResult) return true;
+      }
 
-      this.addToAvailableMods(projectData, versionsData, versionData);
-      return true;
+      return false;
     } catch (error: any) {
       console.error(`Error processing file ${file.name}:`, error);
       this.unresolvedMods.push({
@@ -199,6 +209,112 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Attempts to process the file using Modrinth API
+   * @param fileHash The hash of the file
+   * @param file The file to process
+   * @param mcVersion The selected minecraft version
+   * @private
+   */
+  private async tryModrinth(fileHash: string, file: File, mcVersion: MinecraftVersion): Promise<boolean> {
+    const versionData = await this.loadVersionData(fileHash, file);
+    if (!versionData) return false;
+
+    const projectData = await this.loadProjectData(versionData.project_id, file);
+    if (!projectData) return false;
+
+    const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type);
+
+    const versionsData = await this.loadVersionsData(
+      projectData.id, mcVersion.version, ignoreLoader ? [] : this.getValidLoaders(), file
+    );
+    if (versionsData == null || versionsData.length == 0) {
+      if (versionsData != null) {
+        this.unavailableMods.push({file, project_url: projectData.slug, project: projectData});
+      }
+      return false;
+    }
+
+    this.addToAvailableMods(projectData, versionsData, versionData);
+    return true;
+  }
+
+  /**
+   * Attempts to process the file using Curseforge API
+   * @param fileBuffer The file buffer
+   * @param file The file to process
+   * @param mcVersion The selected minecraft version
+   * @private
+   */
+  private async tryCurseforge(fileBuffer: ArrayBuffer, file: File, mcVersion: MinecraftVersion): Promise<boolean> {
+    const curseforgeFile = await firstValueFrom(this.curseforge.getFileFromBuffer(fileBuffer));
+
+    if (this.curseforge.isAnnotatedError(curseforgeFile)) {
+      return false;
+    }
+
+    const mod = await firstValueFrom(this.curseforge.getMod(curseforgeFile.modId));
+    if (this.curseforge.isAnnotatedError(mod)) {
+      return false;
+    }
+
+
+    // Check if the mod has files for the selected loader
+    const targetVersionsLoader = mod.latestFilesIndexes.filter(f => this.interoperability.convertCurseforgeLoaderToModrinthLoader(f.modLoader) == this.loader);
+    if (targetVersionsLoader.length == 0) {
+      if (this.invalidLoaderMods.some(m => m.file == file) || this.unavailableMods.some(m => m.file == file)) {
+        return false;
+      }
+
+      this.removePreviousErrors(file);
+      const project = this.interoperability.convertCurseforgeToModrinthProject(mod);
+      this.invalidLoaderMods.push({file, project_url: project.project_url, project: project});
+      return false;
+    }
+
+    // Check if the mod has files for the selected mc version
+    const targetVersionIndices = targetVersionsLoader.filter(f => f.gameVersion.includes(mcVersion.version));
+    if (!targetVersionIndices || targetVersionIndices.length == 0) {
+      if (this.unavailableMods.some(m => m.file == file)) {
+        return false;
+      }
+
+      this.removePreviousErrors(file);
+      const project = this.interoperability.convertCurseforgeToModrinthProject(mod);
+      this.unavailableMods.push({file, project_url: project.project_url, project: project});
+      return false;
+    }
+
+    // Get the files
+    let targetFilesRequests = [];
+    for (const version of targetVersionIndices) {
+      targetFilesRequests.push(firstValueFrom(this.curseforge.getFileFromIndex(version.fileId)));
+    }
+    // @ts-ignore
+    const targetFiles: CurseforgeFile[] = (await Promise.all(targetFilesRequests)).filter(f => f != null && !this.curseforge.isAnnotatedError(f));
+
+    if (targetFiles.length == 0) {
+      return false;
+    }
+
+    // Get the changelog for the first file
+    const changelog = await firstValueFrom(this.curseforge.getModFileChangelog(mod.id, targetFiles[0].id));
+
+    this.removePreviousErrors(file);
+
+    // Convert Curseforge data to Modrinth format and add to available mods
+    const modrinthProject = this.interoperability.convertCurseforgeToModrinthProject(mod);
+    const modrinthVersions = this.interoperability.convertCurseforgeToModrinthVersions(targetFiles);
+    const modrinthVersion = this.interoperability.convertCurseforgeToModrinthVersion(curseforgeFile);
+
+    if (!this.curseforge.isAnnotatedError(changelog)) {
+      modrinthVersions[0].changelog = changelog;
+    }
+
+    this.addToAvailableMods(modrinthProject, modrinthVersions, modrinthVersion);
+    return true;
+  }
+
+    /**
    * Loads version data from the modrinth API
    * @param fileHash The hash of the file
    * @param file The file to process
@@ -227,7 +343,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
 
     if ([ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type) && !this.isLoaderCompatible(projectData.loaders)) {
-      this.invalidLoaderMods.push({file, slug: projectData.slug, project: projectData});
+      this.invalidLoaderMods.push({file, project_url: projectData.project_url, project: projectData});
       return null;
     }
     return projectData;
@@ -261,11 +377,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param versionData The version data
    * @private
    */
-  private addToAvailableMods(projectData: Project, versionsData: Version[], versionData: Version) {
-    const annotatedVersions = this.annotateVersionStatus(versionData, versionsData as ExtendedVersion[], versionData.id);
+  private addToAvailableMods(projectData: ModrinthProject, versionsData: ModrinthVersion[], versionData: ModrinthVersion) {
+    const annotatedVersions = this.annotateVersionStatus(versionData, versionsData as ExtendedVersion[], this.mcVersions.find(v => v.selected)!.version);
     if (!this.availableMods.some((mod) => mod.project.id === projectData.id)) {
       this.availableMods.push({versions: annotatedVersions, project: projectData});
     }
+  }
+
+  /**
+   * Removes previous errors for a file
+   * @param file The file to remove errors for
+   */
+  private removePreviousErrors(file: File) {
+    this.unresolvedMods = this.unresolvedMods.filter(um => um.file != file);
+    this.invalidLoaderMods = this.invalidLoaderMods.filter(im => im.file != file);
+    this.unavailableMods = this.unavailableMods.filter(um => um.file != file);
   }
 
   /**
@@ -304,12 +430,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     targetVersions: ExtendedVersion[],
     targetedMcVersion: string
   ): ExtendedVersion[] {
+    const uploadedMcVersion: string | null = installedVersion.game_versions[installedVersion.game_versions.length - 1] || installedVersion.dependencies['minecraft'];
     return targetVersions.map((version) => {
       version.selected = version === targetVersions[0]; // Mark first version as selected
 
       // Check if the uploaded mods minecraft version is lower than the selected version
-      const uploadedMcVersion = installedVersion.game_versions[installedVersion.game_versions.length - 1] || installedVersion.dependencies['minecraft'];
-      if (uploadedMcVersion > targetedMcVersion) {
+      if (uploadedMcVersion == null || uploadedMcVersion > targetedMcVersion) {
         version.versionStatus = VersionStatus.Unspecified;
         return version;
       }
@@ -594,7 +720,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   View = View;  // Expose the View enum to the template
 }
 
-export interface ExtendedVersion extends Version {
+export interface ExtendedVersion extends ModrinthVersion {
   versionStatus: VersionStatus;  // Whether the version is updated, installed or outdated
   selected: boolean;  // Whether the version was selected by the user
 }

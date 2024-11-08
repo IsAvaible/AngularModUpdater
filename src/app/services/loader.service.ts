@@ -22,4 +22,5 @@ export enum Loader {
   quilt = 'Quilt',
   forge = 'Forge',
   neoforge = 'NeoForge',
+
 }

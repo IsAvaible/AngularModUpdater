@@ -2,6 +2,7 @@ import {Component, ElementRef, HostListener, inject, ViewChild} from '@angular/c
 import { Output, EventEmitter } from '@angular/core';
 import {animate, style, transition, trigger} from "@angular/animations";
 import {ModrinthService} from "../../services/modrinth.service";
+import {CurseforgeSupportService} from "../../services/curseforgeSupport.service";
 
 @Component({
   selector: 'app-info-section',
@@ -22,6 +23,14 @@ export class InfoSectionComponent {
   modrinth = inject(ModrinthService);
 
   show = true;
+  curseforgeSupport = false;
+
+  curseforgeSupportService = inject(CurseforgeSupportService);
+  constructor() {
+    this.curseforgeSupportService.support.subscribe(support => {
+      this.curseforgeSupport = support;
+    });
+  }
 
   @Output() closeEvent = new EventEmitter<boolean>(false);
   closeInfoSection() {
@@ -37,6 +46,12 @@ export class InfoSectionComponent {
       // clicked outside => close info section
       this.closeInfoSection();
     }
+  }
+
+  toggleCurseforgeSupport($event: MouseEvent) {
+    $event.preventDefault();
+    $event.stopPropagation();
+    this.curseforgeSupportService.setCurseforgeSupport(!this.curseforgeSupport);
   }
 
   protected readonly Math = Math;

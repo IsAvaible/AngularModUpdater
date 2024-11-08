@@ -1,6 +1,6 @@
 import {Loader} from "../../services/loader.service";
 
-export interface Version {
+export interface ModrinthVersion {
   name: string,
   version_number: string,
   changelog: string,
@@ -26,7 +26,7 @@ export interface Version {
   }[],
 }
 
-export interface Project {
+export interface ModrinthProject {
   slug: string,
   title: string,
   description: string,
@@ -40,6 +40,7 @@ export interface Project {
   wiki_url: string | null,
   discord_url: string | null,
   donation_urls: string[] | null,
+  project_url: string,
   project_type: ProjectType,
   downloads: number,
   icon_url: string | null,

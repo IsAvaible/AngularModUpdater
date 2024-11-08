@@ -60,7 +60,13 @@
             The source code is available on <a target="_blank" referrerpolicy="no-referrer"
                                                href="https://github.com/IsAvaible/AngularModUpdater">GitHub</a>.
           </p>
+
+          <label class="inline-flex items-center cursor-pointer" (click)="toggleCurseforgeSupport($event)">
+            <input type="checkbox" [(ngModel)]="curseforgeSupport">
+            <span class="ml-3 text-sm text-gray-900 dark:text-gray-300">Enable Experimental Curseforge Support</span>
+          </label>
         </div>
+
         <button (click)="closeInfoSection()" type="button"
                 class="sm:hidden mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-slate-900 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
           Close

@@ -43,7 +43,7 @@
     <section *ngIf="unavailableMods.length > 0">
       <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">Mods which have no releases for the selected version</p>
       <div class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white ring-yellow-100 dark:ring-yellow-300 gap-y-2 p-2 rounded-lg justify-between items-center">
-        <a href="https://modrinth.com/mod/{{mod.project.slug}}" target="_blank" referrerpolicy="no-referrer" *ngFor="let mod of unavailableMods | orderBy : 'project.title':false:true" class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2">
+        <a href="{{mod.project.project_url}}" target="_blank" referrerpolicy="no-referrer" *ngFor="let mod of unavailableMods | orderBy : 'project.title':false:true" class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2">
           {{ mod.project.title }}
         </a>
       </div>
@@ -51,7 +51,7 @@
     <section *ngIf="invalidLoaderMods.length > 0">
       <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">Mods which are not available for the selected mod-loader</p>
       <div class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white ring-yellow-100 dark:ring-yellow-300 gap-y-2 p-2 rounded-lg justify-between items-center">
-        <a href="https://modrinth.com/mod/{{mod.project.slug}}" target="_blank" referrerpolicy="no-referrer" *ngFor="let mod of invalidLoaderMods | orderBy : 'project.title':false:true" class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2">
+        <a href="{{mod.project.project_url}}" target="_blank" referrerpolicy="no-referrer" *ngFor="let mod of invalidLoaderMods | orderBy : 'project.title':false:true" class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2">
           {{ mod.project.title }}
         </a>
       </div>

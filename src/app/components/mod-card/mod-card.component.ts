@@ -1,5 +1,5 @@
 import {Component, Input} from '@angular/core';
-import {Project} from "../../libraries/modrinth/types.modrinth";
+import {ModrinthProject} from "../../libraries/modrinth/types.modrinth";
 import {ExtendedVersion, VersionStatus} from "../mod-panel/mod-panel.component";
 import {animate, style, transition, trigger} from "@angular/animations";
 
@@ -21,7 +21,7 @@ import {animate, style, transition, trigger} from "@angular/animations";
 })
 export class ModCardComponent {
   @Input() versions!: ExtendedVersion[];
-  @Input() project!: Project;
+  @Input() project!: ModrinthProject;
   @Input() view!: View;
 
   showChangelog = false;
