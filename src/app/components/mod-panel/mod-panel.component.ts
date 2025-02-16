@@ -702,16 +702,38 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     if (files.length <= 3) {
       for (let file of files) window.open(file.url);
     } else {
-      const zip = new JSZip();
-      let promises = [];
-      for (let file of files) {
-        if (file != undefined) {
-          promises.push(fetch(file.url).then(r => zip.file(file.filename, r.blob())));
+      Swal.fire({
+        title: 'Downloading...',
+        html: 'Progress: <b>0%</b>',
+        allowOutsideClick: false,
+        showCancelButton: false,
+        showConfirmButton: false,
+        didOpen: async () => {
+          Swal.showLoading();
+
+          const zip = new JSZip();
+          let completed = 0;
+          let total = files.length;
+
+          let promises = files.map(file =>
+            fetch(file.url).then(async r => {
+              zip.file(file.filename, await r.blob());
+              completed++;
+              Swal.update({ html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`});
+              Swal.showLoading()
+            })
+          );
+
+          await Promise.all(promises);
+
+          Swal.update({ title: 'Creating ZIP...', html: 'Please wait...' });
+          Swal.showLoading();
+
+          zip.generateAsync({ type: 'blob' }).then(content => {
+            saveAs(content, 'mods.zip');
+            Swal.close();
+          });
         }
-      }
-      await Promise.all(promises);
-      zip.generateAsync({type: "blob"}).then((content) => {
-        saveAs(content, "mods.zip");
       });
     }
   }
