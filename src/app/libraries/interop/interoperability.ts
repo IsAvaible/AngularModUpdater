@@ -5,7 +5,8 @@ import {
     FileReleaseType,
     ModLoaderType
 } from "../curseforge/types.curseforge";
-import {ModrinthProject, ModrinthVersion, ProjectType, RequirementLevel, Status} from "../modrinth/types.modrinth";
+import {ModrinthProject, ModrinthVersion, ProjectType, RequirementLevel, Status, VersionType} from "../modrinth/types.modrinth";
+import {GitHubModInfo, GitHubProject, GitHubVersion} from "../github/types.github";
 import {Loader} from "../../services/loader.service";
 
 export class Interoperability {
@@ -169,6 +170,131 @@ export class Interoperability {
             default:
                 return null
         }
+    }
+
+    /**
+     * Converts GitHub mod info to Modrinth project format
+     * @param modInfo The GitHub mod info
+     * @param mcVersion The selected minecraft version
+     * @public
+     */
+    public convertGitHubToModrinthProject(modInfo: GitHubModInfo, mcVersion: string): ModrinthProject {
+        return {
+            id: modInfo.project.id,
+            slug: modInfo.project.id.replace('/', '-'),
+            title: modInfo.project.title,
+            description: modInfo.project.description,
+            project_url: modInfo.project.project_url,
+            project_type: ProjectType.Mod,
+            downloads: modInfo.project.downloads,
+            updated: modInfo.project.updated,
+            published: new Date(), // GitHub doesn't provide creation date easily
+            approved: null,
+            status: Status.Approved,
+            versions: modInfo.project.versions,
+            loaders: modInfo.project.loaders,
+            categories: [],
+            client_side: RequirementLevel.Required,
+            server_side: RequirementLevel.Optional,
+            body: modInfo.project.description,
+            additional_categories: null,
+            issues_url: modInfo.project.project_url + "/issues",
+            source_url: modInfo.project.project_url,
+            wiki_url: null,
+            discord_url: null,
+            donation_urls: null,
+            icon_url: null,
+            color: null,
+            team: 'unknown',
+            moderators_message: null,
+            followers: 0,
+            license: null,
+            game_versions: [],
+            gallery: []
+        };
+    }
+
+    /**
+     * Converts GitHub versions to Modrinth versions format
+     * @param versions The GitHub versions
+     * @param projectId The project ID
+     * @param mcVersion The selected minecraft version
+     * @param authorId The author ID (repository owner)
+     * @public
+     */
+    public convertGitHubToModrinthVersions(versions: GitHubVersion[], projectId: string, mcVersion: string, authorId: string): ModrinthVersion[] {
+        return versions.map(version => this.convertGitHubToModrinthVersion(version, projectId, mcVersion, authorId));
+    }
+
+    /**
+     * Converts a GitHub version to Modrinth version format
+     * @param version The GitHub version
+     * @param projectId The project ID
+     * @param mcVersion The selected minecraft version
+     * @param authorId The author ID (repository owner)
+     * @public
+     */
+    public convertGitHubToModrinthVersion(version: GitHubVersion, projectId: string, mcVersion: string, authorId: string): ModrinthVersion {
+        return {
+            name: version.name,
+            version_number: version.version_number,
+            changelog: version.changelog,
+            dependencies: [],
+            game_versions: [mcVersion], // Assume compatibility with selected version
+            version_type: VersionType.Release,
+            loaders: [], // Will be filled by the calling code
+            featured: false,
+            status: Status.Approved,
+            requested_status: null,
+            id: `github-${projectId}-${version.version_number}`,
+            project_id: projectId,
+            author_id: authorId,
+            date_published: version.date_published,
+            downloads: version.downloads,
+            files: version.files.map(file => ({
+                hashes: { sha512: '', sha1: '' }, // GitHub doesn't provide hashes
+                url: file.url,
+                filename: file.filename,
+                primary: file.primary,
+                size: file.size,
+                file_type: null
+            }))
+        };
+    }
+
+    /**
+     * Creates a mock installed version for GitHub mods for comparison
+     * @param filename The filename of the installed mod
+     * @param projectId The project ID
+     * @param authorId The author ID (repository owner)
+     * @public
+     */
+    public createGitHubInstalledVersion(filename: string, projectId: string, authorId: string): ModrinthVersion {
+        return {
+            name: `Installed: ${filename}`,
+            version_number: 'installed',
+            changelog: '',
+            dependencies: [],
+            game_versions: [],
+            version_type: VersionType.Release,
+            loaders: [],
+            featured: false,
+            status: Status.Approved,
+            requested_status: null,
+            id: `github-installed-${filename}`,
+            project_id: projectId,
+            author_id: authorId,
+            date_published: new Date(0), // Very old date to ensure updates are detected
+            downloads: 0,
+            files: [{
+                hashes: { sha512: '', sha1: '' },
+                url: '',
+                filename: filename,
+                primary: true,
+                size: 0,
+                file_type: null
+            }]
+        };
     }
 
 }

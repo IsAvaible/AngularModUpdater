@@ -39,6 +39,22 @@ export class ModCardComponent {
     return (this.selectedVersion.files.find(f => f.primary) || this.selectedVersion.files[0]).url;
   }
 
+  get isGitHubMod() {
+    return this.selectedVersion.id.startsWith('github-');
+  }
+
+  get authorUrl() {
+    return this.isGitHubMod ?
+      `https://github.com/${this.selectedVersion.author_id}` :
+      `https://modrinth.com/user/${this.selectedVersion.author_id}`;
+  }
+
+  get authorLinkTitle() {
+    return this.isGitHubMod ?
+      "Open the Author's GitHub Profile" :
+      "Open the Author's Modrinth Page";
+  }
+
   toggleChangelog() {
     this.showChangelog = !this.showChangelog;
   }
