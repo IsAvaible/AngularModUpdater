@@ -360,7 +360,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.removePreviousErrors(file);
 
     // Convert GitHub data to Modrinth format using interoperability service
-    const modrinthProject = this.interoperability.convertGitHubToModrinthProject(modInfo, mcVersion.version);
+    const modrinthProject = this.interoperability.convertGitHubToModrinthProject(modInfo);
     const modrinthVersions = this.interoperability.convertGitHubToModrinthVersions(
       modInfo.versions,
       modInfo.project.id,
@@ -783,6 +783,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     if (files.length <= 3) {
       for (let file of files) window.open(file.url);
     } else {
+      const failedFiles: typeof files = []
       Swal.fire({
         title: 'Downloading...',
         html: 'Progress: <b>0%</b>',
@@ -802,6 +803,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
               completed++;
               Swal.update({html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`});
               Swal.showLoading()
+            }).catch(error => {
+              console.error(`Error downloading file ${file.filename}:`, error);
+              failedFiles.push(file);
+              completed++;
             })
           );
 
@@ -810,10 +815,40 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           Swal.update({title: 'Creating ZIP...', html: 'Please wait...'});
           Swal.showLoading();
 
-          zip.generateAsync({type: 'blob'}).then(content => {
-            saveAs(content, 'mods.zip');
-            Swal.close();
-          });
+          const zipBlob = await zip.generateAsync({type: 'blob'});
+          saveAs(zipBlob, 'mods.zip');
+          Swal.close();
+
+          if (failedFiles.length > 0) {
+            const failedListHTML = failedFiles
+              .map(f => `<li><a href="${f.url}" target="_blank">${f.filename}</a></li>`)
+              .join('');
+
+            await Swal.fire({
+              position: 'top-end',
+              icon: 'warning',
+              title: `Some Downloads Failed`,
+              html: `
+              <p class="mb-3">
+                <b>${failedFiles.length}</b> file${failedFiles.length > 1 ? 's' : ''} could not be downloaded.
+              </p>
+              <p>This may be due to CORS or server issues. Click "Retry" to attempt a manual download in a new tab.</p>
+              <p class="mt-2">Affected files:</p>
+              <ul class="list-inside list-disc max-h-36 overflow-y-auto">
+                ${failedListHTML}
+              </ul>
+            `,
+              backdrop: `rgba(0, 0, 0, 0.0)`,
+              confirmButtonText: 'Retry with Workaround',
+              allowOutsideClick: false,
+              preConfirm: () => {
+                for (let file of failedFiles) {
+                  window.open(file.url);
+                }
+              },
+              showCancelButton: true,
+            })
+          }
         }
       });
     }

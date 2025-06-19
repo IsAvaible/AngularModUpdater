@@ -22,7 +22,7 @@ export class GitHub {
 
   private _rateLimit_Limit: number = 60;
   private _rateLimit_Remaining: number = 60;
-  private _rateLimit_Reset: number = 0;
+  private _rateLimit_Reset?: Date = undefined;
 
   constructor() {
   }
@@ -31,21 +31,29 @@ export class GitHub {
   /**
    * Predefined GitHub repository configurations
    */
-  public static REPO_CONFIGS: GitHubRepoConfig[] = [];
-  static {
-    const modrinthPages = ['bEpr0Arc', 'GcWjdA9I', 'UMxybHE8', 't5wuYk45', 'JygyCSA4', 'zQhsx8KF']
-    // slugs don't work because of the getProjectBuffer in modrinth.ts, which causes the modrinth.getProject request to stall for some reason
+  public static REPO_CONFIGS: GitHubRepoConfig[] = GitHub.createRepoConfigs();
 
-    let i = 0;
-    for (const modName of ['litematica', 'malilib', 'minihud', 'tweakeroo', 'itemscroller', 'servux']) {
-      GitHub.REPO_CONFIGS.push({
-        owner: 'sakura-ryoko',
-        repo: modName,
-        loader: Loader.fabric,
-        pattern: new RegExp(`^${modName}.*?-.+?-.+?-sakura.\\d+?.jar$`, 'i'),
-        modrinthPage: modrinthPages[i++]
-      });
-    }
+  private static createRepoConfigs(): GitHubRepoConfig[] {
+    let configs: GitHubRepoConfig[] = [];
+
+    const sakuraRyokoConfigs: GitHubRepoConfig[] = [
+      { modName: 'litematica', modrinthPage: 'bEpr0Arc' },
+      { modName: 'malilib', modrinthPage: 'GcWjdA9I' },
+      { modName: 'minihud', modrinthPage: 'UMxybHE8' },
+      { modName: 'tweakeroo', modrinthPage: 't5wuYk45' },
+      { modName: 'itemscroller', modrinthPage: 'JygyCSA4' },
+      { modName: 'servux', modrinthPage: 'zQhsx8KF' }
+    ].map(({ modName, modrinthPage }) => ({
+      owner: 'sakura-ryoko',
+      repo: modName,
+      loader: Loader.fabric,
+      pattern: new RegExp(`^${modName}.*?-.+?-.+?-sakura.\\d+?.jar$`, 'i'),
+      modrinthPage
+    }));
+
+    configs = configs.concat(sakuraRyokoConfigs)
+
+    return configs;
   }
 
   /**
@@ -67,15 +75,15 @@ export class GitHub {
 
     if (limit) this._rateLimit_Limit = parseInt(limit);
     if (remaining) this._rateLimit_Remaining = parseInt(remaining);
-    if (reset) this._rateLimit_Reset = parseInt(reset) - Math.floor(Date.now() / 1000);
+    if (reset) this._rateLimit_Reset = new Date(reset);
   }
 
   private rateLimitHandler<T>(error: HttpErrorResponse): Observable<T> {
-    if (error.status === 403 && error.headers.get('X-RateLimit-Remaining') === '0') {
+    if (error.status === 403 || error.headers.get('X-RateLimit-Remaining') === '0') {
       const resetTime = parseInt(error.headers.get('X-RateLimit-Reset') || '0');
-      const waitTime = Math.max(resetTime - Math.floor(Date.now() / 1000), 60);
+      const waitTime = resetTime - Math.floor(Date.now() / 1000);
 
-      console.log(`GitHub rate limit reached. Wait for ${waitTime} seconds before retrying.`);
+      console.log(`GitHub rate limit reached. Wait for ${(waitTime / 60).toFixed(1)} minutes before retrying.`);
 
       Swal.fire({
         position: 'top-end',
@@ -104,6 +112,23 @@ export class GitHub {
   }
 
   /**
+   * Determines if an HTTP error should be retried
+   */
+  private isRetryableError(error: HttpErrorResponse): boolean {
+    if (error.status >= 400 && error.status < 500) {
+      // Only retry on specific 4xx errors that might be transient
+      return error.status === 429; // Too Many Requests
+    }
+
+    // Retry on server errors (5xx) and network errors
+    if (error.status >= 500 || error.status === 0) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Retries the request with a backoff strategy
    * @param maxRetries The maximum number of retries
    * @param delayMs The delay in milliseconds
@@ -112,6 +137,10 @@ export class GitHub {
     return retryWhen(errors =>
       errors.pipe(
         scan((acc, error) => {
+          if (error instanceof HttpErrorResponse && !this.isRetryableError(error)) {
+            throw error; // Don't retry non-retryable errors
+          }
+
           if (acc >= maxRetries) throw error;
           return acc + 1;
         }, 0),
