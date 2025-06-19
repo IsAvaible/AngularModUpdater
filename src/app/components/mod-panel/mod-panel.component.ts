@@ -354,7 +354,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     });
 
     // Create a mock installed version for comparison
-    const installedVersion = this.interoperability.createGitHubInstalledVersion(file.name, modInfo.project.id, modInfo.config.owner);
+    const installedVersion = this.interoperability.createGitHubInstalledVersion(file.name, modInfo.project.id);
 
     this.addToAvailableMods(modrinthProject, modrinthVersions, installedVersion);
     return true;

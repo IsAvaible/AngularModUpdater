@@ -203,7 +203,7 @@ export class Interoperability {
             wiki_url: null,
             discord_url: null,
             donation_urls: null,
-            icon_url: null,
+            icon_url: modInfo.config.icon_url,
             color: null,
             team: 'unknown',
             moderators_message: null,
@@ -266,10 +266,9 @@ export class Interoperability {
      * Creates a mock installed version for GitHub mods for comparison
      * @param filename The filename of the installed mod
      * @param projectId The project ID
-     * @param authorId The author ID (repository owner)
      * @public
      */
-    public createGitHubInstalledVersion(filename: string, projectId: string, authorId: string): ModrinthVersion {
+    public createGitHubInstalledVersion(filename: string, projectId: string): ModrinthVersion {
         return {
             name: `Installed: ${filename}`,
             version_number: 'installed',
@@ -283,7 +282,7 @@ export class Interoperability {
             requested_status: null,
             id: `github-installed-${filename}`,
             project_id: projectId,
-            author_id: authorId,
+            author_id: 'github',
             date_published: new Date(0), // Very old date to ensure updates are detected
             downloads: 0,
             files: [{

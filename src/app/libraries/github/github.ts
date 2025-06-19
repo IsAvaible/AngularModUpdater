@@ -1,5 +1,5 @@
 import {AnnotatedError, GitHubModInfo, GitHubProject, GitHubRelease, GitHubRepoConfig, GitHubVersion} from './types.github';
-import {catchError, delay, filter, map, Observable, of, retryWhen, scan, timeout} from 'rxjs';
+import {catchError, delay, map, Observable, of, retryWhen, scan, timeout} from 'rxjs';
 import {HttpClient, HttpErrorResponse, HttpResponse} from '@angular/common/http';
 import {inject} from '@angular/core';
 import {Loader} from '../../services/loader.service';
@@ -22,23 +22,6 @@ export class GitHub {
   }
 
   private http = inject(HttpClient);
-
-  public static get Instance() {
-    return this._instance || (this._instance = new this());
-  }
-
-  get rateLimit_Limit(): number {
-    return this._rateLimit_Limit;
-  }
-
-  get rateLimit_Remaining(): number {
-    return this._rateLimit_Remaining;
-  }
-
-  get rateLimit_Reset(): number {
-    return this._rateLimit_Reset;
-  }
-
   /**
    * Predefined GitHub repository configurations
    */
@@ -46,12 +29,29 @@ export class GitHub {
 
   ];
   static {
+    const descriptions = [
+      'A modern client-side schematic mod for Minecraft',
+      'Library mod for masa\'s client-side Minecraft mods',
+      'A client-side Minecraft mod with configurable "info lines" ("mini-F3") and various overlays, such as light level and structure bounding boxes',
+      'A client-side Minecraft mod that adds various "tweaks" (= usually small-ish individual features)',
+      'A client-side Minecraft mod that adds various convenient ways of moving items within inventory GUIs, such as scrolling over stacks to move single items to or from it'
+    ]   // todo: maybe fetch descriptions from GitHub?
+    const icons = [
+      'https://cdn.modrinth.com/data/bEpr0Arc/25b5529d7a3b030ac136a6ce879d8ed2a1aa4a8d.png',
+      'https://cdn.modrinth.com/data/GcWjdA9I/a530ae55df5e0c405f5cf1b3e4fd6163a398bdc3.png',
+      'https://cdn.modrinth.com/data/UMxybHE8/4adf057a251f694983af139a06839e33bcd7a419.png',
+      'https://cdn.modrinth.com/data/t5wuYk45/35af76cfb1d3074c5e8575d5f7385bb6c083c9d6.png',
+      'https://cdn.modrinth.com/data/JygyCSA4/07db2203f74b2adc775822c2edf577b343df04f8_96.webp'
+    ]   // todo: maybe fetch icons from the modrinth page?
+    let i = 0;
     for (const modName of ['litematica', 'malilib', 'minihud', 'tweakeroo', 'itemscroller']) {
       GitHub.REPO_CONFIGS.push({
         owner: 'sakura-ryoko',
         repo: modName,
         loader: Loader.fabric,
-        pattern: new RegExp(`^${modName}-fabric-.+?-.+?-sakura\\.\\d+?\\.jar$`, 'i')
+        pattern: new RegExp(`^${modName}-fabric-.+?-.+?-sakura\\.\\d+?\\.jar$`, 'i'),
+        icon_url: icons[i],
+        description: descriptions[i++]
       });
     }
   }
@@ -200,7 +200,7 @@ export class GitHub {
         const project: GitHubProject = {
           id: id,
           title: matchingConfig.repo,
-          description: 'Github Repository',
+          description: matchingConfig.description || 'Github Repository',
           project_url: `https://github.com/${id}`,
           downloads: validReleases.reduce((sum, release) =>
             sum + release.assets.reduce((assetSum, asset) => assetSum + asset.download_count, 0), 0
@@ -235,24 +235,6 @@ export class GitHub {
           versions,
           config: matchingConfig
         };
-      })
-    );
-  }
-
-  /**
-   * Gets the latest version for a mod file
-   * @param filename The mod filename
-   * @param loader The current loader
-   * @param version The current selected minecraft version
-   */
-  public getLatestVersion(filename: string, loader: Loader, version: string): Observable<GitHubVersion | null> {
-    return this.getModInfoForFile(filename, loader, version).pipe(
-      map(modInfo => {
-        if (!modInfo || modInfo.versions.length === 0) {
-          return null;
-        }
-        // Return the most recent version (first in the sorted array)
-        return modInfo.versions[0];
       })
     );
   }

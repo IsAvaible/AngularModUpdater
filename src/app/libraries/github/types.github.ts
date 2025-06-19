@@ -12,6 +12,8 @@ export interface GitHubRepoConfig {
   repo: string;
   loader: Loader;
   pattern: RegExp;
+  icon_url: string;
+  description: string
 }
 
 export interface GitHubRelease {
@@ -33,6 +35,7 @@ export interface GitHubAsset {
   label: string | null;
   content_type: string;
   size: number;
+  digest: string;
   download_count: number;
   created_at: string;
   updated_at: string;
