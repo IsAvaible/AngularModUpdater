@@ -1,9 +1,29 @@
 import {Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {FilesService} from "../../services/files.service";
-import {concatMap, delay, finalize, firstValueFrom, forkJoin, from, last, map, Observable, of, Subject, Subscription, tap} from "rxjs";
+import {
+  concatMap,
+  delay,
+  finalize,
+  firstValueFrom,
+  forkJoin,
+  from,
+  last,
+  map,
+  Observable,
+  of,
+  Subject,
+  Subscription,
+  tap
+} from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
-import {AnnotatedError, Modpack, ModrinthProject, ModrinthVersion, ProjectType} from "../../libraries/modrinth/types.modrinth";
+import {
+  AnnotatedError,
+  Modpack,
+  ModrinthProject,
+  ModrinthVersion,
+  ProjectType
+} from "../../libraries/modrinth/types.modrinth";
 import {View} from "../mod-card/mod-card.component";
 import * as JSZip from "jszip";
 import {saveAs} from 'file-saver';
@@ -331,7 +351,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @private
    */
   private async tryGitHub(file: File, mcVersion: MinecraftVersion): Promise<boolean> {
-    const modInfo = await firstValueFrom(this.github.getModInfoForFile(file.name, this.loader, mcVersion.version));
+    const modInfo = await firstValueFrom(this.github.getModInfoForFile(file.name, this.loader, mcVersion.version, this.modrinth));
 
     if (!modInfo) {
       return false;
@@ -349,9 +369,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     );
 
     // Set the correct loaders for the versions
-    modrinthVersions.forEach(version => {
-      version.loaders = modInfo.project.loaders;
-    });
+    modrinthVersions.forEach(version => version.loaders = modInfo.project.loaders);
 
     // Create a mock installed version for comparison
     const installedVersion = this.interoperability.createGitHubInstalledVersion(file.name, modInfo.project.id);

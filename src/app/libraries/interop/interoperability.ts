@@ -183,7 +183,7 @@ export class Interoperability {
             id: modInfo.project.id,
             slug: modInfo.project.id.replace('/', '-'),
             title: modInfo.project.title,
-            description: modInfo.project.description,
+            description: modInfo.config.description || "Github Repository",
             project_url: modInfo.project.project_url,
             project_type: ProjectType.Mod,
             downloads: modInfo.project.downloads,
@@ -194,8 +194,8 @@ export class Interoperability {
             versions: modInfo.project.versions,
             loaders: modInfo.project.loaders,
             categories: [],
-            client_side: RequirementLevel.Required,
-            server_side: RequirementLevel.Optional,
+            client_side: modInfo.config.client || RequirementLevel.Required,
+            server_side: modInfo.config.server || RequirementLevel.Optional,
             body: modInfo.project.description,
             additional_categories: null,
             issues_url: modInfo.project.project_url + "/issues",
@@ -203,7 +203,7 @@ export class Interoperability {
             wiki_url: null,
             discord_url: null,
             donation_urls: null,
-            icon_url: modInfo.config.icon_url,
+            icon_url: modInfo.config.icon_url || null,
             color: null,
             team: 'unknown',
             moderators_message: null,
@@ -269,12 +269,15 @@ export class Interoperability {
      * @public
      */
     public createGitHubInstalledVersion(filename: string, projectId: string): ModrinthVersion {
+        const match = filename.match(/1.\d{1,2}.\d{1,2}/);
+        const version = match ? match[0] : null;
+
         return {
             name: `Installed: ${filename}`,
             version_number: 'installed',
             changelog: '',
             dependencies: [],
-            game_versions: [],
+            game_versions: version ? [version] : [],
             version_type: VersionType.Release,
             loaders: [],
             featured: false,

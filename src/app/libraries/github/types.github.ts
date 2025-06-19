@@ -1,4 +1,5 @@
 import { Loader } from '../../services/loader.service';
+import {RequirementLevel} from "../modrinth/types.modrinth";
 
 export interface AnnotatedError {
   error: {
@@ -12,8 +13,12 @@ export interface GitHubRepoConfig {
   repo: string;
   loader: Loader;
   pattern: RegExp;
-  icon_url: string;
-  description: string
+  title?: string;
+  client?: RequirementLevel
+  server?: RequirementLevel
+  modrinthPage?: string;
+  icon_url?: string;
+  description?: string;
 }
 
 export interface GitHubRelease {
@@ -39,6 +44,7 @@ export interface GitHubAsset {
   download_count: number;
   created_at: string;
   updated_at: string;
+  url: string;
   browser_download_url: string;
 }
 

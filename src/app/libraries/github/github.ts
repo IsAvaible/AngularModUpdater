@@ -1,13 +1,19 @@
-import {AnnotatedError, GitHubModInfo, GitHubProject, GitHubRelease, GitHubRepoConfig, GitHubVersion} from './types.github';
-import {catchError, delay, map, Observable, of, retryWhen, scan, timeout} from 'rxjs';
+import {
+  AnnotatedError,
+  GitHubModInfo,
+  GitHubProject,
+  GitHubRelease,
+  GitHubRepoConfig,
+  GitHubVersion
+} from './types.github';
+import {catchError, delay, firstValueFrom, map, Observable, of, retryWhen, scan, switchMap, timeout} from 'rxjs';
 import {HttpClient, HttpErrorResponse, HttpResponse} from '@angular/common/http';
 import {inject} from '@angular/core';
 import {Loader} from '../../services/loader.service';
 import Swal from 'sweetalert2';
+import {Modrinth} from "../modrinth/modrinth";
 
 export class GitHub {
-  private static _instance: GitHub;
-
   public githubAPIUrl = 'https://api.github.com';
   public headers = {
     'Accept': 'application/vnd.github.v3+json',
@@ -25,33 +31,19 @@ export class GitHub {
   /**
    * Predefined GitHub repository configurations
    */
-  public static REPO_CONFIGS: GitHubRepoConfig[] = [
-
-  ];
+  public static REPO_CONFIGS: GitHubRepoConfig[] = [];
   static {
-    const descriptions = [
-      'A modern client-side schematic mod for Minecraft',
-      'Library mod for masa\'s client-side Minecraft mods',
-      'A client-side Minecraft mod with configurable "info lines" ("mini-F3") and various overlays, such as light level and structure bounding boxes',
-      'A client-side Minecraft mod that adds various "tweaks" (= usually small-ish individual features)',
-      'A client-side Minecraft mod that adds various convenient ways of moving items within inventory GUIs, such as scrolling over stacks to move single items to or from it'
-    ]   // todo: maybe fetch descriptions from GitHub?
-    const icons = [
-      'https://cdn.modrinth.com/data/bEpr0Arc/25b5529d7a3b030ac136a6ce879d8ed2a1aa4a8d.png',
-      'https://cdn.modrinth.com/data/GcWjdA9I/a530ae55df5e0c405f5cf1b3e4fd6163a398bdc3.png',
-      'https://cdn.modrinth.com/data/UMxybHE8/4adf057a251f694983af139a06839e33bcd7a419.png',
-      'https://cdn.modrinth.com/data/t5wuYk45/35af76cfb1d3074c5e8575d5f7385bb6c083c9d6.png',
-      'https://cdn.modrinth.com/data/JygyCSA4/07db2203f74b2adc775822c2edf577b343df04f8_96.webp'
-    ]   // todo: maybe fetch icons from the modrinth page?
+    const modrinthPages = ['bEpr0Arc', 'GcWjdA9I', 'UMxybHE8', 't5wuYk45', 'JygyCSA4', 'zQhsx8KF']
+    // slugs don't work because of the getProjectBuffer in modrinth.ts, which causes the modrinth.getProject request to stall for some reason
+
     let i = 0;
-    for (const modName of ['litematica', 'malilib', 'minihud', 'tweakeroo', 'itemscroller']) {
+    for (const modName of ['litematica', 'malilib', 'minihud', 'tweakeroo', 'itemscroller', 'servux']) {
       GitHub.REPO_CONFIGS.push({
         owner: 'sakura-ryoko',
         repo: modName,
         loader: Loader.fabric,
-        pattern: new RegExp(`^${modName}-fabric-.+?-.+?-sakura\\.\\d+?\\.jar$`, 'i'),
-        icon_url: icons[i],
-        description: descriptions[i++]
+        pattern: new RegExp(`^${modName}.*?-.+?-.+?-sakura.\\d+?.jar$`, 'i'),
+        modrinthPage: modrinthPages[i++]
       });
     }
   }
@@ -171,8 +163,9 @@ export class GitHub {
    * @param filename The mod filename to check
    * @param loader The current loader
    * @param mcVersion The current selected minecraft version
+   * @param modrinth The client to fetch data from Modrinth with
    */
-  public getModInfoForFile(filename: string, loader: Loader, mcVersion: string): Observable<GitHubModInfo | null> {
+  public getModInfoForFile(filename: string, loader: Loader, mcVersion: string, modrinth: Modrinth): Observable<GitHubModInfo | null> {
     const matchingConfig = GitHub.REPO_CONFIGS.find(config =>
       config.loader === loader && config.pattern.test(filename)
     );
@@ -182,10 +175,12 @@ export class GitHub {
     }
 
     return this.getReleases(matchingConfig).pipe(
-      map(releases => {
+      switchMap(async releases => {
         if (this.isAnnotatedError(releases)) {
           return null;
         }
+
+        await this.findGithubInfoFromModrinth(matchingConfig, modrinth);
 
         const validReleases = releases
           .filter(release => !release.draft && !release.prerelease)
@@ -199,7 +194,7 @@ export class GitHub {
         const id = `${matchingConfig.owner}/${matchingConfig.repo}`;
         const project: GitHubProject = {
           id: id,
-          title: matchingConfig.repo,
+          title: matchingConfig.title || matchingConfig.repo,
           description: matchingConfig.description || 'Github Repository',
           project_url: `https://github.com/${id}`,
           downloads: validReleases.reduce((sum, release) =>
@@ -237,5 +232,22 @@ export class GitHub {
         };
       })
     );
+  }
+
+  private foundInfo = new Set();
+
+  private async findGithubInfoFromModrinth(config: GitHubRepoConfig, modrinth: Modrinth) {
+    const modrinthPage = config.modrinthPage;
+    if (!modrinthPage || this.foundInfo.has(modrinthPage)) return;
+    this.foundInfo.add(modrinthPage);
+
+    const modrinthProject = await firstValueFrom(modrinth.getProject(modrinthPage));
+    if (modrinth.isAnnotatedError(modrinthProject)) return;
+
+    config.title = modrinthProject.title;
+    config.description = modrinthProject.description;
+    config.client = modrinthProject.client_side;
+    config.server = modrinthProject.server_side;
+    config.icon_url = modrinthProject.icon_url || undefined;
   }
 }
