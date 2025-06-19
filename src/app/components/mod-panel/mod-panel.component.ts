@@ -803,10 +803,19 @@ export class ModPanelComponent implements OnInit, OnDestroy {
               completed++;
               Swal.update({html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`});
               Swal.showLoading()
-            }).catch(error => {
-              console.error(`Error downloading file ${file.filename}:`, error);
-              failedFiles.push(file);
+            }).catch(async () => {
               completed++;
+              console.error(`Error downloading file ${file.filename}. Retrying with Vercel function.`);
+              try {
+                const response = await fetch(`/api/proxy-file?url=${encodeURIComponent(file.url)}`);
+                if (!response.ok) {
+                  throw new Error();
+                }
+                zip.file(file.filename, await response.blob());
+              } catch {
+                console.error(`Error downloading file ${file.filename} with Vercel function.`);
+                failedFiles.push(file);
+              }
             })
           );
 
