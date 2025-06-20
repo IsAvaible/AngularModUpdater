@@ -10,3 +10,6 @@ Returns a list of all available version files of your mods and lets you download
 
 ## Screenshot
 ![Screenshot of the website](doc/Screenshot.jpeg)
+
+## Contributors
+- [@orangishcat](https://github.com/orangishcat) - Add predefined URLs to update mods from GitHub [#13](https://github.com/IsAvaible/AngularModUpdater/pull/13)
