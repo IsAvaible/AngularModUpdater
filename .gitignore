@@ -43,3 +43,4 @@ Thumbs.db
 
 # Environment variables
 src/environments
+.vercel

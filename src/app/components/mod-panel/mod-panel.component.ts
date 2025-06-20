@@ -6,22 +6,22 @@ import {
   finalize,
   firstValueFrom,
   forkJoin,
-  from, last,
+  from,
+  last,
   map,
   Observable,
   of,
   Subject,
   Subscription,
-  take,
   tap
 } from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
 import {
-  ModrinthProject,
-  ModrinthVersion,
   AnnotatedError,
   Modpack,
+  ModrinthProject,
+  ModrinthVersion,
   ProjectType
 } from "../../libraries/modrinth/types.modrinth";
 import {View} from "../mod-card/mod-card.component";
@@ -31,6 +31,7 @@ import {Loader, LoaderService} from "../../services/loader.service";
 import Swal from "sweetalert2";
 import {ModrinthService} from "../../services/modrinth.service";
 import {CurseforgeService} from "../../services/curseforge.service";
+import {GitHubService} from "../../services/github.service";
 import {InteroperabilityService} from "../../services/interoperability.service";
 import {CurseforgeFile} from "../../libraries/curseforge/types.curseforge";
 import {CurseforgeSupportService} from "../../services/curseforgeSupport.service";
@@ -77,6 +78,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private modrinth = inject(ModrinthService);
   private curseforge = inject(CurseforgeService);
+  private github = inject(GitHubService);
   private interoperability = inject(InteroperabilityService);
 
   /**
@@ -155,7 +157,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Processes a file using Modrinth API with Curseforge fallback
+   * Processes a file using Modrinth API with GitHub and Curseforge fallbacks
    * @param file The file to process
    * @param mcVersion The selected minecraft version
    * @param hash The hash of the file
@@ -188,7 +190,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
 
     try {
-      // Try Modrinth first
+      // Try GitHub first for pattern-matched files (more specific)
+      const githubResult = await this.tryGitHub(file, mcVersion);
+      if (githubResult) {
+        return true;
+      }
+
+      // Try Modrinth second
       const modrinthResult = await this.tryModrinth(fileHash, file, mcVersion);
       if (modrinthResult) {
         return true;
@@ -196,14 +204,28 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
       // If Curseforge support is not enabled return false
       if (!this.curseforgeSupport) {
+        if (!this.unavailableMods.some(m => m.file == file)) {
+          this.unresolvedMods.push({
+            file,
+            slug: undefined,
+            annotation: {error: {status: 404, message: "No matching mod found in enabled APIs"}}
+          });
+        }
         return false;
       }
+
       // If Modrinth fails, and we have the file buffer, try Curseforge
       if (fileBuffer) {
         const curseforgeResult = await this.tryCurseforge(fileBuffer, file, mcVersion);
         if (curseforgeResult) return true;
       }
 
+      // All APIs failed, add to unresolved
+      this.unresolvedMods.push({
+        file,
+        slug: undefined,
+        annotation: {error: {status: 404, message: "No matching mod found in any API"}}
+      });
       return false;
     } catch (error: any) {
       console.error(`Error processing file ${file.name}:`, error);
@@ -323,6 +345,40 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Attempts to process the file using GitHub API
+   * @param file The file to process
+   * @param mcVersion The selected minecraft version
+   * @private
+   */
+  private async tryGitHub(file: File, mcVersion: MinecraftVersion): Promise<boolean> {
+    const modInfo = await firstValueFrom(this.github.getModInfoForFile(file.name, this.loader, mcVersion.version, this.modrinth));
+
+    if (!modInfo) {
+      return false;
+    }
+
+    this.removePreviousErrors(file);
+
+    // Convert GitHub data to Modrinth format using interoperability service
+    const modrinthProject = this.interoperability.convertGitHubToModrinthProject(modInfo);
+    const modrinthVersions = this.interoperability.convertGitHubToModrinthVersions(
+      modInfo.versions,
+      modInfo.project.id,
+      mcVersion.version,
+      modInfo.config.owner
+    );
+
+    // Set the correct loaders for the versions
+    modrinthVersions.forEach(version => version.loaders = modInfo.project.loaders);
+
+    // Create a mock installed version for comparison
+    const installedVersion = this.interoperability.createGitHubInstalledVersion(file.name, modInfo.project.id);
+
+    this.addToAvailableMods(modrinthProject, modrinthVersions, installedVersion);
+    return true;
+  }
+
+  /**
    * Loads version data from the modrinth API
    * @param fileHash The hash of the file
    * @param file The file to process
@@ -331,7 +387,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private async loadVersionData(fileHash: string, file: File) {
     const versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
     if (this.modrinth.isAnnotatedError(versionData)) {
-      await this.handleAnnotatedError(versionData, file);
+      await this.handleAnnotatedErrorSilent(versionData, file);
       return null;
     }
     return versionData;
@@ -346,7 +402,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private async loadProjectData(projectId: string, file: File) {
     const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
     if (this.modrinth.isAnnotatedError(projectData)) {
-      await this.handleAnnotatedError(projectData, file, projectId);
+      await this.handleAnnotatedErrorSilent(projectData, file, projectId);
       return null;
     }
 
@@ -372,7 +428,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       this.modrinth.getVersionsFromId(projectId, version, validLoaders)
     );
     if (this.modrinth.isAnnotatedError(targetVersionData)) {
-      await this.handleAnnotatedError(targetVersionData, file);
+      await this.handleAnnotatedErrorSilent(targetVersionData, file);
       return null;
     }
     return targetVersionData;
@@ -483,6 +539,31 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     if (errorData.error.status !== 0) {
       this.unresolvedMods.push({file, slug, annotation: errorData});
     }
+  }
+
+  /**
+   * Handles annotated errors silently (without adding to unresolved mods immediately)
+   * Used during API fallback attempts to avoid premature unresolved classification
+   * @param errorData The error data
+   * @param file The file that caused the error
+   * @param slug The slug of the project
+   * @private
+   */
+  private async handleAnnotatedErrorSilent(errorData: any, file: File, slug?: string) {
+    if (errorData.error.status === 410) {
+      await Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "API Deprecated",
+        text: "The Modrinth API has been deprecated. Please notify the maintainer on GitHub.",
+        showConfirmButton: false,
+        timer: 3000,
+        backdrop: "rgba(0, 0, 0, 0.0)",
+      });
+    } else if (errorData.error.status !== 404) {
+      this.handleRequestError(file);
+    }
+    // Note: We don't add to unresolvedMods here - that's handled by the caller after all APIs are tried
   }
 
 
@@ -702,6 +783,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     if (files.length <= 3) {
       for (let file of files) window.open(file.url);
     } else {
+      const failedFiles: typeof files = []
       Swal.fire({
         title: 'Downloading...',
         html: 'Progress: <b>0%</b>',
@@ -719,20 +801,63 @@ export class ModPanelComponent implements OnInit, OnDestroy {
             fetch(file.url).then(async r => {
               zip.file(file.filename, await r.blob());
               completed++;
-              Swal.update({ html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`});
+              Swal.update({html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`});
               Swal.showLoading()
+            }).catch(async () => {
+              completed++;
+              console.error(`Error downloading file ${file.filename}. Retrying with Vercel function.`);
+              try {
+                const response = await fetch(`/api/proxy-file?url=${encodeURIComponent(file.url)}`);
+                if (!response.ok) {
+                  throw new Error();
+                }
+                zip.file(file.filename, await response.blob());
+              } catch {
+                console.error(`Error downloading file ${file.filename} with Vercel function.`);
+                failedFiles.push(file);
+              }
             })
           );
 
           await Promise.all(promises);
 
-          Swal.update({ title: 'Creating ZIP...', html: 'Please wait...' });
+          Swal.update({title: 'Creating ZIP...', html: 'Please wait...'});
           Swal.showLoading();
 
-          zip.generateAsync({ type: 'blob' }).then(content => {
-            saveAs(content, 'mods.zip');
-            Swal.close();
-          });
+          const zipBlob = await zip.generateAsync({type: 'blob'});
+          saveAs(zipBlob, 'mods.zip');
+          Swal.close();
+
+          if (failedFiles.length > 0) {
+            const failedListHTML = failedFiles
+              .map(f => `<li><a href="${f.url}" target="_blank">${f.filename}</a></li>`)
+              .join('');
+
+            await Swal.fire({
+              position: 'top-end',
+              icon: 'warning',
+              title: `Some Downloads Failed`,
+              html: `
+              <p class="mb-3">
+                <b>${failedFiles.length}</b> file${failedFiles.length > 1 ? 's' : ''} could not be downloaded.
+              </p>
+              <p>This may be due to CORS or server issues. Click "Retry" to attempt a manual download in a new tab.</p>
+              <p class="mt-2">Affected files:</p>
+              <ul class="list-inside list-disc max-h-36 overflow-y-auto">
+                ${failedListHTML}
+              </ul>
+            `,
+              backdrop: `rgba(0, 0, 0, 0.0)`,
+              confirmButtonText: 'Retry with Workaround',
+              allowOutsideClick: false,
+              preConfirm: () => {
+                for (let file of failedFiles) {
+                  window.open(file.url);
+                }
+              },
+              showCancelButton: true,
+            })
+          }
         }
       });
     }
