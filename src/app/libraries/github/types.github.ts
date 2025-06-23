@@ -1,13 +1,6 @@
 import { Loader } from '../../services/loader.service';
 import {RequirementLevel} from "../modrinth/types.modrinth";
 
-export interface AnnotatedError {
-  error: {
-    message: string;
-    status: number;
-  };
-}
-
 export interface GitHubRepoConfig {
   owner: string;
   repo: string;

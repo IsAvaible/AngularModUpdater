@@ -1,48 +1,60 @@
 import {
-  AnnotatedError,
   Modpack,
   ModrinthProject,
+  ModrinthVersion,
   ProjectType,
   SearchProjectsParams,
-  SearchResult,
-  ModrinthVersion
+  SearchResult
 } from "./types.modrinth";
 import {
   bufferTime,
-  catchError, defaultIfEmpty, delay,
+  catchError,
+  defaultIfEmpty,
   filter,
   firstValueFrom,
   map,
   Observable,
-  of, retryWhen, scan,
+  of,
   share,
   Subject,
   switchMap,
-  take, timeout
+  take,
+  timeout
 } from "rxjs";
-import {HttpClient, HttpErrorResponse, HttpHeaders, HttpParams, HttpResponse} from "@angular/common/http";
-import Swal from "sweetalert2";
+import {HttpClient, HttpParams} from "@angular/common/http";
 import {inject} from "@angular/core";
 import * as JSZip from "jszip";
+import {AnnotatedError, BaseApiProvider} from "../BaseApiProvider";
+import {RateLimitInfo} from "../RateLimitedApi";
 
 
-export class Modrinth {
+export class Modrinth extends BaseApiProvider {
+  protected apiName = 'Modrinth';
   private static _instance: Modrinth;
 
   public modrinthAPIUrl = 'https://api.modrinth.com/v2';  // Modrinth API Endpoint
-  public headers = {
+  public headers = { // Headers for the requests
     "Access-Control-Allow-Origin": this.modrinthAPIUrl,
     "Content-Type": "application/json",
     "Accept": "application/json"
-  };  // Headers for the requests
+  };
 
-  private _rateLimit_Limit: number = 300;  // Rate limit maximum per minute
-  private _rateLimit_Remaining: number = 300;  // Requests remaining
-  private _rateLimit_Reset: number = 0;  // Seconds until the rate limit resets
-  private sha1 = require('js-sha1');  // SHA1 hashing function
-  private intervalRequestStart: Date | null = null; // Date of the first request in the current interval
+  public static get Instance() {
+    return this._instance || (this._instance = new this());
+  }
 
-  public bufferDelay = 2000;
+  private http = inject(HttpClient);
+  private sha1 = require('js-sha1');
+
+  protected override get _rateLimitInfo(): RateLimitInfo {
+    return {
+      limit: 300,
+      remaining: 300,
+      resetTime: new Date(Date.now() + 60 * 1000) // one minute reset time
+    };
+  }
+
+  private bufferDelay = 2000;
 
   private getVersionBuffer = new Subject<string>();
   private getVersionBufferResolver = this.getVersionBuffer.pipe(
@@ -58,153 +70,22 @@ export class Modrinth {
     share(),
   );
 
-  constructor() {
+  protected setupBuffering() {
     this.getVersionBufferResolver.subscribe();
     this.getProjectBufferResolver.subscribe();
   }
 
-  private http = inject(HttpClient);
-
-  public static get Instance() {
-    return this._instance || (this._instance = new this());
-  }
-
-  get rateLimit_Limit(): number {
-    return this._rateLimit_Limit;
-  }
-
-  get rateLimit_Remaining(): number {
-    return this._rateLimit_Remaining;
-  }
-
-  get rateLimit_Reset(): number {
-    return this._rateLimit_Reset;
+  constructor() {
+    super();
+    this.setupBuffering();
   }
 
   /**
-   * Checks if the given object is an annotated error
-   * @param object The object to check
+   * Check if error is rate limit related (API-specific implementation)
    */
-  public isAnnotatedError(object: any): object is AnnotatedError {
-    return object && !!((object as AnnotatedError).error);
-  }
-
-  private rateLimitHandler<T>(error: HttpErrorResponse): Observable<T> {
-    if (error.status == 429) {
-      let responseHeaders = error.headers;
-      this._rateLimit_Limit = parseInt(<string>responseHeaders.get('X-RateLimit-Limit'));
-      this._rateLimit_Remaining = parseInt(<string>responseHeaders.get('X-RateLimit-Remaining'));
-      this._rateLimit_Reset = parseInt(<string>responseHeaders.get('X-RateLimit-Reset'));
-    }
-
-    this._rateLimit_Remaining = -1;
-    console.log(`Rate limit reached. Wait for ${this._rateLimit_Reset} seconds before retrying.`);
-    let timerInterval: NodeJS.Timer;
-    // Fire a sweet alert
-    Swal.fire({
-      position: 'top-start',
-      icon: 'error',
-      title: 'Rate Limit Exceeded',
-      html: `Modrinths rate limit was reached, please try again in <b>${this._rateLimit_Reset}</b> seconds${error.status == 0 ? ' (approximated)' : ''}.`,
-      showConfirmButton: false,
-      timer: this._rateLimit_Reset * 1000,
-      timerProgressBar: true,
-      backdrop: false,
-      didOpen: () => {
-        const b: HTMLElement = Swal.getHtmlContainer()!.querySelector('b')!;
-        timerInterval = setInterval(() => {
-          b.textContent = String(Math.round(Swal.getTimerLeft()! / 1000));
-        }, 100)
-      },
-      willClose: () => {
-        clearInterval(timerInterval)
-      }
-    })
-
-    return of({error: error} as T);
-  }
-
-  /**
-   * Returns an error handler, that handles the rate limit of the Modrinth API
-   */
-  private errorHandler<T>() {
-    return (error: HttpErrorResponse): Observable<T> => {
-      if (error.status == 429) {
-        return this.rateLimitHandler(error);
-      }
-
-      if (this._rateLimit_Remaining == 0 || error.status == 0 && this._rateLimit_Remaining != -1) {
-        // The workaround (client side tracking of the rate limit) might be wrong. In this case the status is 0
-        let statusCase = this._rateLimit_Remaining != 0;
-        if (statusCase) {
-          this._rateLimit_Reset = 30;
-          console.log(this._rateLimit_Remaining);
-        }
-
-        this.rateLimitHandler(error);
-
-        if (statusCase) setTimeout(() => this._rateLimit_Remaining = 0, 30 * 1000)
-      }
-      return of({error: error} as T);
-    };
-  }
-
-  /**
-   * Adjusts the rate limit of the Modrinth API
-   *
-   * The Modrinth API has a rate limit of 300 requests per minute. This function reduces the remaining requests by 1
-   * and starts a timer that resets the remaining requests to 300 after 60 seconds.
-   *
-   * NOTE: This is a workaround as the API does not return the rate limit headers (CORS issue). catchError() should be in charge of this.
-   * TODO: Remove this function after fixing the CORS issue
-   * @private
-   */
-  private adjustRateLimit(headers?: HttpHeaders) {
-    if (headers != null && headers.get('X-RateLimit-Limit') != null) {
-      this._rateLimit_Limit = parseInt(<string>headers.get('X-RateLimit-Limit'));
-      this._rateLimit_Remaining = parseInt(<string>headers.get('X-RateLimit-Remaining'));
-      this._rateLimit_Reset = parseInt(<string>headers.get('X-RateLimit-Reset'));
-
-      console.log(`Rate limit: ${this._rateLimit_Remaining}/${this._rateLimit_Limit} (Reset in ${this._rateLimit_Reset}s)`);
-
-      if (this.intervalRequestStart != null) return  // If the interval is already running, return
-    } else {
-      if (this._rateLimit_Remaining > 0) this._rateLimit_Remaining -= 1;  // Reduce the remaining requests by 1
-      if (this.intervalRequestStart != null) return  // If the interval is already running, return
-
-      const temp = new Date();
-      this.intervalRequestStart = temp;
-      this._rateLimit_Reset = 60;
-    }
-    setInterval(() => {
-      if (this._rateLimit_Reset <= 0) {
-        this.intervalRequestStart = null;
-        this._rateLimit_Remaining = 300;
-        // @ts-ignore
-        clearInterval(this);
-      } else {
-        this._rateLimit_Reset -= 1;
-      }
-    }, 1000);
-  }
-
-
-  /**
-   * Retries the request with a backoff strategy
-   * @param maxRetries The maximum number of retries
-   * @param delayMs The delay in milliseconds
-   * @private
-   */
-  private retryWithBackoff(maxRetries: number, delayMs: number) {
-    return retryWhen(errors =>
-      errors.pipe(
-        scan((acc, error) => {
-          if (acc >= maxRetries) throw error;
-          return acc + 1;
-        }, 0),
-        delay(delayMs)
-      )
-    );
+  protected override isRateLimitError(error: any): boolean {
+    // Check if error has rate limit properties
+    return !!(error && (error.status === 429 || error.status == 0));
   }
 
   private parseProject(project: ModrinthProject): ModrinthProject {
@@ -231,25 +112,24 @@ export class Modrinth {
     let url = `${this.modrinthAPIUrl}/projects?ids=["${ids.join('","')}"]`;
     return this.http.get<ModrinthProject[]>(url, {headers: this.headers, observe: 'response'}).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff<ModrinthProject[]>(3, 1000),
-      map((resp: HttpResponse<ModrinthProject[]>) => {
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
         // Adjust the rate limit based on the response headers
-        this.adjustRateLimit(resp.headers);
+        this.trackRateLimit(resp.headers);
         // Process the response body
         let projects = resp.body!;
         let result: { [hash: string]: ModrinthProject | AnnotatedError } = {};
         projects.forEach(project => {
           result[project.id] = this.parseProject(project);
           if (!this.isAnnotatedError(result[project.id])) {
-            // @ts-ignore
-            result[project.id].project_url = `https://modrinth.com/project/${project.id}`;
+            // Add the project URL to the project object
+            (result[project.id] as ModrinthProject).project_url = `https://modrinth.com/project/${project.id}`;
           }
         });
         return result;
       }),
       catchError(
-        this.errorHandler<{ [hash: string]: ModrinthProject | AnnotatedError }>()
+        this.createErrorHandler<{ [hash: string]: ModrinthProject | AnnotatedError }>()
       ));
   }
 
@@ -279,15 +159,13 @@ export class Modrinth {
     return this.http.get<ModrinthVersion[]>(url, {headers: this.headers, observe: 'response'})
       .pipe(
         timeout(10000),
-        // @ts-ignore
-        this.retryWithBackoff(3, 1000),
-        map((resp: HttpResponse<ModrinthVersion[]>) => {
-          // Adjust the rate limit based on the response headers
-          this.adjustRateLimit(resp.headers);
+        this.createRetryStrategy(3, 1000),
+        map((resp) => {
+          this.trackRateLimit(resp.headers);
           // Process the response body
           return this.parseVersions(resp.body!);
         }),
-        catchError(this.errorHandler<ModrinthVersion[] | AnnotatedError>())
+        catchError(this.createErrorHandler<ModrinthVersion[] | AnnotatedError>())
       );
   }
 
@@ -308,23 +186,21 @@ export class Modrinth {
     }, {observe: 'response'})
       .pipe(
         timeout(10000),
-        // @ts-ignore
-        this.retryWithBackoff(3, 1000),
-        map((resp: HttpResponse<{ [hash: string]: ModrinthVersion | AnnotatedError }>) => {
-          // Adjust the rate limit based on the response headers
-          this.adjustRateLimit(resp.headers);
+        this.createRetryStrategy(3, 1000),
+        map((resp) => {
+          this.trackRateLimit(resp.headers);
           // Process the response body
           let versions = resp.body!;
           for (const hash of hashes) {
             if (versions[hash] instanceof Object) {
               versions[hash] = this.parseVersion(versions[hash] as ModrinthVersion);
             } else {
-              versions[hash] = {error: versions[hash] ?? {message: "Unknown error", status: 404}} as AnnotatedError;
+              versions[hash] = {error: versions[hash] ?? {message: "Unknown error", status: 404}} as unknown as AnnotatedError;
             }
           }
           return versions;
         }),
-        catchError(this.errorHandler<{ [hash: string]: ModrinthVersion | AnnotatedError }>())
+        catchError(this.createErrorHandler<{ [hash: string]: ModrinthVersion | AnnotatedError }>())
       );
   }
 
@@ -381,8 +257,7 @@ export class Modrinth {
     // Make the HTTP GET request with the constructed parameters
     return this.http.get<SearchResult>(`${this.modrinthAPIUrl}/search`, {params: httpParams}).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
+      this.createRetryStrategy(3, 1000),
       catchError((error) => {
         // Wrap the error in an AnnotatedError and return it
         return of({error} as AnnotatedError);

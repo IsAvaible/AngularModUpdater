@@ -31,7 +31,8 @@
             <li>Upload your mod(s) by dragging and dropping them onto the page.</li>
             <li>Let the tool find the targeted versions of your mods.</li>
           </ol>
-          <p>You can also update resource packs (.zip), shaders (.zip) and modpacks (.mrpack) and downgrade mods to a specific version. <br> Modpack
+          <p>You can also update resource packs (.zip), shaders (.zip) and modpacks (.mrpack) and downgrade mods to a
+            specific version. <br> Modpack
             developers can use this tool to update the mods contained in their modpacks to the latest versions by
             uploading the modrinth.index.json file.</p>
 
@@ -40,10 +41,13 @@
             Please note that this tool relies on the Modrinth API for fetching mod updates. Modrinth has a rate limit in
             place to prevent abuse. If you hit the rate limit, you will need to wait for a few seconds. You are able to
             process at most ~290 mods per minute.
-            Currently you have used {{ this.modrinth.rateLimit_Limit - Math.max(this.modrinth.rateLimit_Remaining, 0) }}
-            of {{ this.modrinth.rateLimit_Limit }}
-            tokens{{ this.modrinth.rateLimit_Reset ? ' (resets in ' + this.modrinth.rateLimit_Reset + ' seconds)' : '' }}
-            .
+            Currently you have
+            used  {{ (this.modrinth.rateLimitLimit ?? 0) - Math.max(this.modrinth.rateLimitRemaining ?? 0, 0) }}
+            of {{ this.modrinth.rateLimitLimit ?? 0 }}
+            tokens
+            <ng-container *ngIf="modrinth.getRateLimitSecondsUntilReset$ | async as resetIn">
+              (resets in {{ resetIn }} seconds {{ modrinth.isClientSideRateLimit ? '(approximated)' : '' }})
+            </ng-container>.
           </p>
 
           <h3 class="font-semibold text-lg">Attributions:</h3>

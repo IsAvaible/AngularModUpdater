@@ -158,5 +158,3 @@ export interface SearchResult {
   offset: number;
   limit: number;
 }
-
-export interface AnnotatedError {error: any}

@@ -1,10 +1,3 @@
-export interface AnnotatedError {
-  error: {
-    message: string;
-    status: number;
-  };
-}
-
 export interface CurseforgeResponse<T> {
   data: T;
 }

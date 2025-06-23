@@ -1,45 +1,31 @@
-import {
-  AnnotatedError,
-  SearchCriterias,
-  CurseforgeResponse,
-  CurseforgeFile,
-  CurseforgeMod,
-  SearchResult
-} from "./types.curseforge";
-import {
-  bufferTime,
-  catchError,
-  delay,
-  filter,
-  map,
-  Observable,
-  of,
-  retryWhen,
-  scan,
-  share,
-  Subject,
-  switchMap,
-  take,
-  timeout
-} from "rxjs";
-import {HttpClient, HttpErrorResponse, HttpResponse} from "@angular/common/http";
+import {CurseforgeFile, CurseforgeMod, CurseforgeResponse, SearchCriterias, SearchResult} from "./types.curseforge";
+import {bufferTime, catchError, filter, map, Observable, of, share, Subject, switchMap, take, timeout} from "rxjs";
+import {HttpClient} from "@angular/common/http";
 import {inject} from "@angular/core";
-import Swal from "sweetalert2";
 import compute_fingerprint from "./fingerprint";
+import {AnnotatedError, BaseApiProvider} from "../BaseApiProvider";
 
 /**
  * Wrapper around the Curseforge API.
  *
  * @link https://docs.curseforge.com/rest-api/
  */
-export class Curseforge {
+export class Curseforge extends BaseApiProvider {
+  protected apiName = 'Curseforge';
   private static _instance: Curseforge;
+
   public curseforgeAPIUrl = "https://api.curseforge.com/v1/";
   public headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
     "x-api-key": window.atob("JDJhJDEwJEN0ZmFPQTRIT1phbXZTMXphVHUwLnVoTS51VzlNNzBQOGRyZnF2WUptOFNXdy5yWTlPSk1t")
   };
+
+  public static get Instance() {
+    return this._instance || (this._instance = new this());
+  }
+
+  private http = inject(HttpClient);
 
   public bufferDelay = 2000;
 
@@ -64,83 +50,15 @@ export class Curseforge {
     share(),
   );
 
-  constructor() {
+  protected setupBuffering() {
     this.getFileBufferResolver.subscribe();
     this.getModBufferResolver.subscribe();
     this.getFileByIdBufferResolver.subscribe();
   }
 
-  private http = inject(HttpClient);
-
-  public static get Instance() {
-    return this._instance || (this._instance = new this());
-  }
-
-  /**
-   * Checks if the given object is an annotated error
-   * @param object The object to check
-   */
-  public isAnnotatedError(object: any): object is AnnotatedError {
-    return object && !!((object as AnnotatedError).error);
-  }
-
-  private rateLimitHandler<T>(error: HttpErrorResponse): Observable<T> {
-    if (error.status == 429) {
-      let retryAfter = parseInt(error.headers.get('Retry-After') || '30');
-      console.log(`Rate limit reached. Wait for ${retryAfter} seconds before retrying.`);
-      let timerInterval: NodeJS.Timer;
-
-      Swal.fire({
-        position: 'top-start',
-        icon: 'error',
-        title: 'Rate Limit Exceeded',
-        html: `CurseForge rate limit was reached, please try again in <b>${retryAfter}</b> seconds.`,
-        showConfirmButton: false,
-        timer: retryAfter * 1000,
-        timerProgressBar: true,
-        backdrop: false,
-        didOpen: () => {
-          const b: HTMLElement = Swal.getHtmlContainer()!.querySelector('b')!;
-          timerInterval = setInterval(() => {
-            b.textContent = String(Math.round(Swal.getTimerLeft()! / 1000));
-          }, 100)
-        },
-        willClose: () => {
-          clearInterval(timerInterval)
-        }
-      });
-    }
-    return of({error: error} as T);
-  }
-
-  /**
-   * Returns an error handler that handles API errors
-   */
-  private errorHandler<T>() {
-    return (error: HttpErrorResponse): Observable<T> => {
-      if (error.status == 429) {
-        return this.rateLimitHandler(error);
-      }
-      return of({error: error} as T);
-    };
-  }
-
-  /**
-   * Retries the request with a backoff strategy
-   * @param maxRetries The maximum number of retries
-   * @param delayMs The delay in milliseconds
-   * @private
-   */
-  private retryWithBackoff(maxRetries: number, delayMs: number) {
-    return retryWhen(errors =>
-      errors.pipe(
-        scan((acc, error) => {
-          if (acc >= maxRetries) throw error;
-          return acc + 1;
-        }, 0),
-        delay(delayMs)
-      )
-    );
+  constructor() {
+    super()
+    this.setupBuffering()
   }
 
   private parseMod(mod: CurseforgeMod): CurseforgeMod {
@@ -170,16 +88,15 @@ export class Curseforge {
       { headers: this.headers, observe: 'response' }
     ).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
-      map((resp: HttpResponse<CurseforgeResponse<CurseforgeMod[]>>) => {
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
         let result: { [id: number]: CurseforgeMod | AnnotatedError } = {};
         resp.body!.data.forEach(mod => {
           result[mod.id] = this.parseMod(mod);
         });
         return result;
       }),
-      catchError(this.errorHandler<{ [id: number]: CurseforgeMod | AnnotatedError }>())
+      catchError(this.createErrorHandler<{ [id: number]: CurseforgeMod | AnnotatedError }>())
     );
   }
 
@@ -206,15 +123,14 @@ export class Curseforge {
       return of({});
     }
 
-    return this.http.post<CurseforgeResponse<{ file: CurseforgeFile, file_id: number }[]>>(
+    return this.http.post<CurseforgeResponse<{ exactMatches: {file: CurseforgeFile, id: number}[] }>>(
       `${this.curseforgeAPIUrl}fingerprints`,
       { fingerprints: fingerprints },
       { headers: this.headers, observe: 'response' }
     ).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
-      map((resp: HttpResponse<CurseforgeResponse<{ exactMatches: {file: CurseforgeFile, id: number}[] }>>) => {
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
         let result: { [fingerprint: number]: CurseforgeFile | AnnotatedError } = {};
         fingerprints.forEach(fingerprint => {
           const res = resp.body!.data.exactMatches.find(item => item.file.fileFingerprint === fingerprint);
@@ -226,7 +142,7 @@ export class Curseforge {
         })
         return result;
       }),
-      catchError(this.errorHandler<{ [fingerprint: number]: CurseforgeFile | AnnotatedError }>())
+      catchError(this.createErrorHandler<{ [fingerprint: number]: CurseforgeFile | AnnotatedError }>())
     );
   }
 
@@ -245,16 +161,15 @@ export class Curseforge {
       { headers: this.headers, observe: 'response' }
     ).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
-      map((resp: HttpResponse<CurseforgeResponse<CurseforgeFile[]>>) => {
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
         let result: { [fileId: number]: CurseforgeFile | AnnotatedError } = {};
         resp.body!.data.forEach(file => {
           result[file.id] = this.parseFile(file);
         });
         return result;
       }),
-      catchError(this.errorHandler<{ [fileId: number]: CurseforgeFile | AnnotatedError }>())
+      catchError(this.createErrorHandler<{ [fileId: number]: CurseforgeFile | AnnotatedError }>())
     );
   }
 
@@ -305,11 +220,9 @@ export class Curseforge {
       observe: 'response'
     }).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
-      // @ts-ignore
+      this.createRetryStrategy(3, 1000),
       map(resp => resp.body!.data),
-      catchError(this.errorHandler<SearchResult>())
+      catchError(this.createErrorHandler<SearchResult>())
     );
   }
 
@@ -325,10 +238,9 @@ export class Curseforge {
       { headers: this.headers, observe: 'response' }
     ).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
-      map((resp: HttpResponse<CurseforgeResponse<string>>) => resp.body!.data),
-      catchError(this.errorHandler<string>())
+      this.createRetryStrategy(3, 1000),
+      map((resp) => resp.body!.data),
+      catchError(this.createErrorHandler<string>())
     );
   }
 }

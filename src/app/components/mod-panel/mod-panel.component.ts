@@ -17,8 +17,8 @@ import {
 } from "rxjs";
 import {MinecraftVersion, VersionsService} from "../../services/versions.service";
 import {HttpClient} from "@angular/common/http";
+import {AnnotatedError} from "../../libraries/BaseApiProvider";
 import {
-  AnnotatedError,
   Modpack,
   ModrinthProject,
   ModrinthVersion,

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import {Modrinth} from "../libraries/modrinth/modrinth";
+import { Modrinth } from "../libraries/modrinth/modrinth";
 
 /**
  * Service that acts a Wrapper around the Modrinth API.
@@ -9,5 +9,7 @@ import {Modrinth} from "../libraries/modrinth/modrinth";
   providedIn: 'root'
 })
 export class ModrinthService extends Modrinth {
-  constructor() { super() }
+  constructor() {
+    super()
+  }
 }

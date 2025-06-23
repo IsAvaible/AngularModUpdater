@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import {LocalStorageBehaviorSubject} from "../misc/LocalStorageBehaviorSubject";
 
 /**
- * Service that stores the selected mod loader, synced with local storage
+ * Service that stores weather Curseforge support is enabled, synced with local storage.
  */
 @Injectable()
 export class CurseforgeSupportService {

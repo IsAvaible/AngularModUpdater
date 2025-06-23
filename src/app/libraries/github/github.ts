@@ -1,33 +1,30 @@
-import {
-  AnnotatedError,
-  GitHubModInfo,
-  GitHubProject,
-  GitHubRelease,
-  GitHubRepoConfig,
-  GitHubVersion
-} from './types.github';
-import {catchError, delay, firstValueFrom, map, Observable, of, retryWhen, scan, switchMap, timeout} from 'rxjs';
-import {HttpClient, HttpErrorResponse, HttpResponse} from '@angular/common/http';
+import {GitHubModInfo, GitHubProject, GitHubRelease, GitHubRepoConfig, GitHubVersion} from './types.github';
+import {catchError, firstValueFrom, map, Observable, of, switchMap, timeout} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
 import {inject} from '@angular/core';
 import {Loader} from '../../services/loader.service';
-import Swal from 'sweetalert2';
 import {Modrinth} from "../modrinth/modrinth";
+import {AnnotatedError, BaseApiProvider} from "../BaseApiProvider";
+import {RateLimitInfo} from "../RateLimitedApi";
 
-export class GitHub {
+export class GitHub extends BaseApiProvider {
+  protected override apiName = 'GitHub';
   public githubAPIUrl = 'https://api.github.com';
   public headers = {
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json'
   };
 
-  private _rateLimit_Limit: number = 60;
-  private _rateLimit_Remaining: number = 60;
-  private _rateLimit_Reset?: Date = undefined;
+  private http = inject(HttpClient);
 
-  constructor() {
+  protected override get _rateLimitInfo(): RateLimitInfo {
+    return {
+      limit: 60,
+      remaining: 60,
+      resetTime: new Date(Date.now() + 60 * 60 * 1000) // one hour reset time
+    };
   }
 
-  private http = inject(HttpClient);
   /**
    * Predefined GitHub repository configurations
    */
@@ -57,96 +54,10 @@ export class GitHub {
   }
 
   /**
-   * Checks if the given object is an annotated error
-   * @param object The object to check
+   * Check if error is rate limit related (API-specific implementation)
    */
-  public isAnnotatedError(object: any): object is AnnotatedError {
-    return object && !!((object as AnnotatedError).error);
-  }
-
-  /**
-   * Adjusts the rate limit based on response headers
-   * @param headers The response headers
-   */
-  private adjustRateLimit(headers: any) {
-    const limit = headers.get('X-RateLimit-Limit');
-    const remaining = headers.get('X-RateLimit-Remaining');
-    const reset = headers.get('X-RateLimit-Reset');
-
-    if (limit) this._rateLimit_Limit = parseInt(limit);
-    if (remaining) this._rateLimit_Remaining = parseInt(remaining);
-    if (reset) this._rateLimit_Reset = new Date(reset);
-  }
-
-  private rateLimitHandler<T>(error: HttpErrorResponse): Observable<T> {
-    if (error.status === 403 || error.headers.get('X-RateLimit-Remaining') === '0') {
-      const resetTime = parseInt(error.headers.get('X-RateLimit-Reset') || '0');
-      const waitTime = resetTime - Math.floor(Date.now() / 1000);
-
-      console.log(`GitHub rate limit reached. Wait for ${(waitTime / 60).toFixed(1)} minutes before retrying.`);
-
-      Swal.fire({
-        position: 'top-end',
-        icon: 'warning',
-        title: 'GitHub Rate Limit',
-        text: `Rate limit reached. Waiting ${waitTime} seconds...`,
-        showConfirmButton: false,
-        timer: 3000,
-        backdrop: 'rgba(0, 0, 0, 0.0)',
-      });
-    }
-
-    return of({error: error} as T);
-  }
-
-  /**
-   * Returns an error handler that handles GitHub API errors
-   */
-  private errorHandler<T>() {
-    return (error: HttpErrorResponse): Observable<T> => {
-      if (error.status === 403) {
-        return this.rateLimitHandler(error);
-      }
-      return of({error: error} as T);
-    };
-  }
-
-  /**
-   * Determines if an HTTP error should be retried
-   */
-  private isRetryableError(error: HttpErrorResponse): boolean {
-    if (error.status >= 400 && error.status < 500) {
-      // Only retry on specific 4xx errors that might be transient
-      return error.status === 429; // Too Many Requests
-    }
-
-    // Retry on server errors (5xx) and network errors
-    if (error.status >= 500 || error.status === 0) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Retries the request with a backoff strategy
-   * @param maxRetries The maximum number of retries
-   * @param delayMs The delay in milliseconds
-   */
-  private retryWithBackoff(maxRetries: number, delayMs: number) {
-    return retryWhen(errors =>
-      errors.pipe(
-        scan((acc, error) => {
-          if (error instanceof HttpErrorResponse && !this.isRetryableError(error)) {
-            throw error; // Don't retry non-retryable errors
-          }
-
-          if (acc >= maxRetries) throw error;
-          return acc + 1;
-        }, 0),
-        delay(delayMs)
-      )
-    );
+  protected override isRateLimitError(error: any): boolean {
+    return !!(error && error.status === 429 || error.status == 403);
   }
 
   /**
@@ -162,17 +73,16 @@ export class GitHub {
       observe: 'response'
     }).pipe(
       timeout(10000),
-      // @ts-ignore
-      this.retryWithBackoff(3, 1000),
-      map((resp: HttpResponse<GitHubRelease[]>) => {
-        this.adjustRateLimit(resp.headers);
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
         return resp.body!.map(release => ({
           ...release,
           created_at: release.created_at,
           published_at: release.published_at
         }));
       }),
-      catchError(this.errorHandler<GitHubRelease[] | AnnotatedError>())
+      catchError(this.createErrorHandler<GitHubRelease[] | AnnotatedError>())
     );
   }
 

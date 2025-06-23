@@ -1,6 +1,6 @@
 # Minecraft Mod Updater
 
-A Minecraft Java mod updater and migrator using the Modrinth API build with [Angular](https://angular.io/).
+A Minecraft Java mod updater and migrator using the Modrinth & Curseforge API build with [Angular](https://angular.io/).
 Visit the latest deployment [here](https://mc-mod-updater.vercel.app/).
 
 ## Features

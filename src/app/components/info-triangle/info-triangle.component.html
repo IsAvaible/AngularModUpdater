@@ -13,7 +13,7 @@
 
   <!-- (i) icon that appears on hover -->
   <svg *ngIf="!showInfoSection"
-       [ngClass]="(this.modrinth.rateLimit_Remaining >= this.modrinth.rateLimit_Limit / 2 ? '' : 'hidden')"
+       [ngClass]="(this.modrinth.rateLimitRemaining === null || this.modrinth.rateLimitLimit === null) || this.modrinth.rateLimitRemaining >= this.modrinth.rateLimitLimit / 2 ? '' : 'hidden'"
        class="w-8 h-8 group-hover:inline text-white rotate-45 transition-opacity"
        xmlns="http://www.w3.org/2000/svg"
        fill="none"
@@ -26,13 +26,13 @@
   </svg>
 
   <!-- Remaining rate limit information that appears when the rate limit is below 50% -->
-  <span *ngIf="!showInfoSection && this.modrinth.rateLimit_Remaining < this.modrinth.rateLimit_Limit / 2"
-        [ngClass]="300 - this.modrinth.rateLimit_Remaining > this.modrinth.rateLimit_Limit - 50 ? 'animate-pulse' : ''"
+  <span *ngIf="!showInfoSection && (this.modrinth.rateLimitRemaining !== null && this.modrinth.rateLimitLimit !== null) && this.modrinth.rateLimitRemaining < this.modrinth.rateLimitLimit / 2"
+        [ngClass]="300 - this.modrinth.rateLimitRemaining > this.modrinth.rateLimitLimit - 50 ? 'animate-pulse' : ''"
         class="w-20 text-center opacity-100 group-hover:opacity-0 group-hover:hidden text-white rotate-45 -ml-7"
         aria-live="polite"
   role="status">
-  {{ this.modrinth.rateLimit_Limit - Math.max(this.modrinth.rateLimit_Remaining, 0) }}
-  / {{ this.modrinth.rateLimit_Limit }}
+  {{ this.modrinth.rateLimitLimit - Math.max(this.modrinth.rateLimitRemaining, 0) }}
+  / {{ this.modrinth.rateLimitLimit }}
     <span class="sr-only">tokens remaining.</span>
   </span>
 </button>
