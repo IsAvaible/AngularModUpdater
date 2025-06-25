@@ -204,13 +204,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
       // If Curseforge support is not enabled return false
       if (!this.curseforgeSupport) {
-        if (!this.unavailableMods.some(m => m.file == file)) {
-          this.unresolvedMods.push({
-            file,
-            slug: undefined,
-            annotation: {error: {status: 404, message: "No matching mod found in enabled APIs"}}
-          });
-        }
         return false;
       }
 
@@ -220,12 +213,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         if (curseforgeResult) return true;
       }
 
-      // All APIs failed, add to unresolved
-      this.unresolvedMods.push({
-        file,
-        slug: undefined,
-        annotation: {error: {status: 404, message: "No matching mod found in any API"}}
-      });
       return false;
     } catch (error: any) {
       console.error(`Error processing file ${file.name}:`, error);
