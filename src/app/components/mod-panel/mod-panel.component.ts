@@ -40,6 +40,15 @@ import { InteroperabilityService } from '../../services/interoperability.service
 import { CurseforgeFile } from '../../libraries/curseforge/types.curseforge';
 import { CurseforgeSupportService } from '../../services/curseforgeSupport.service';
 
+export enum SortOption {
+  Default = 'Default Order',
+  NameAsc = 'Name (A-Z)',
+  NameDesc = 'Name (Z-A)',
+  LastUpdated = 'Last Updated',
+  Downloads = 'Downloads',
+  Type = 'Project Type'
+}
+
 @Component({
   selector: 'app-mod-panel',
   templateUrl: './mod-panel.component.html',
@@ -72,6 +81,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   loadingPercent: number = 1; //
 
   order: any[] = ['versions[0].versionStatus', 'project.title']; // Stores the order of the available mods list
+  searchTerm = '';
+  sortOption: SortOption = SortOption.Default;
+  readonly sortOptions = Object.values(SortOption);
 
   files: File[] = [];
   processedFilesNames: string[] = [];
@@ -99,12 +111,22 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private github = inject(GitHubService);
   private interoperability = inject(InteroperabilityService);
 
+  get filteredAvailableMods() {
+    if (!this.searchTerm) {
+      return this.availableMods;
+    }
+    // A simple fuzzy search
+    return this.availableMods.filter((mod) =>
+      mod.project.title.toLowerCase().includes(this.searchTerm.toLowerCase())
+    );
+  }
+
   get primaryMods() {
-    return this.availableMods.filter((mod) => !mod.isDependency);
+    return this.filteredAvailableMods.filter((mod) => !mod.isDependency);
   }
 
   get dependencyMods() {
-    return this.availableMods.filter((mod) => mod.isDependency);
+    return this.filteredAvailableMods.filter((mod) => mod.isDependency);
   }
 
   /**
@@ -117,6 +139,30 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.unresolvedMods = [];
     this.processedFilesNames = [];
     this.toProcess = [];
+  }
+
+  updateSort(option: SortOption) {
+    this.sortOption = option;
+    switch (option) {
+      case SortOption.NameAsc:
+        this.order = ['project.title'];
+        break;
+      case SortOption.NameDesc:
+        this.order = ['-project.title'];
+        break;
+      case SortOption.LastUpdated:
+        this.order = ['-project.date_modified'];
+        break;
+      case SortOption.Downloads:
+        this.order = ['-project.downloads'];
+        break;
+      case SortOption.Type:
+        this.order = ['project.project_type', 'project.title'];
+        break;
+      default:
+        this.order = ['versions[0].versionStatus', 'project.title'];
+        break;
+    }
   }
 
   ngOnInit() {
