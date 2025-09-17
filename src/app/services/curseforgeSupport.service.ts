@@ -8,7 +8,7 @@ import { LocalStorageBehaviorSubject } from '../misc/LocalStorageBehaviorSubject
 export class CurseforgeSupportService {
   private curseforgeSupport$ = new LocalStorageBehaviorSubject<boolean>(
     'curseforge-support',
-    false
+    true
   );
   support = this.curseforgeSupport$.asObservable();
 
