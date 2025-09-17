@@ -41,7 +41,7 @@ To contribute code, follow these steps:
    ```bash
    git clone https://github.com/<your-username>/AngularModUpdater.git
    cd AngularModUpdater
-    ```
+   ```
 
 3. **Install dependencies**:
 
@@ -67,33 +67,34 @@ To contribute code, follow these steps:
    git commit -m "feat(<scope>): <Add your feature summary>"
    git push origin feature/your-feature-name
    ```
-   
+
 ## Development Notes
 
 ### Vercel Functions
- If you want to debug Vercel functions (e.g. proxy-file), you can install the Vercel CLI and run the functions locally:
 
- ```bash
-  npm install -g vercel
-  vercel dev
-  ```
+If you want to debug Vercel functions (e.g. proxy-file), you can install the Vercel CLI and run the functions locally:
+
+```bash
+ npm install -g vercel
+ vercel dev
+```
 
 ---
 
 ## Pull Request Guidelines
 
-* Make sure your code builds and do a sanity check with the interface.
-* Ensure your branch is up to date with `main` before submitting the PR.
-* Include a clear description of your changes.
-* Reference any related issues using `Fixes #issue-number`.
+- Make sure your code builds and do a sanity check with the interface.
+- Ensure your branch is up to date with `main` before submitting the PR.
+- Include a clear description of your changes.
+- Reference any related issues using `Fixes #issue-number`.
 
 ---
 
 ## Coding Standards
 
-* Follow the Angular style guide: [https://angular.io/guide/styleguide](https://angular.io/guide/styleguide)
-* Use clear, concise naming conventions.
-* Format your code using Prettier or the default Angular formatter.
+- Follow the Angular style guide: [https://angular.io/guide/styleguide](https://angular.io/guide/styleguide)
+- Use clear, concise naming conventions.
+- Format your code using Prettier or the default Angular formatter.
 
 ---
 
@@ -103,10 +104,10 @@ Please use [GitHub Issues](https://github.com/IsAvaible/AngularModUpdater/issues
 
 When reporting a bug, include:
 
-* A clear and descriptive title.
-* Steps to reproduce the issue.
-* Expected vs actual behavior.
-* Environment (OS, Node version, Angular version).
+- A clear and descriptive title.
+- Steps to reproduce the issue.
+- Expected vs actual behavior.
+- Environment (OS, Node version, Angular version).
 
 ---
 

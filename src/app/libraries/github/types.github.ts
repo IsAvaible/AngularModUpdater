@@ -1,5 +1,5 @@
 import { Loader } from '../../services/loader.service';
-import {RequirementLevel} from "../modrinth/types.modrinth";
+import { RequirementLevel } from '../modrinth/types.modrinth';
 
 export interface GitHubRepoConfig {
   owner: string;
@@ -7,8 +7,8 @@ export interface GitHubRepoConfig {
   loader: Loader;
   pattern: RegExp;
   title?: string;
-  client?: RequirementLevel
-  server?: RequirementLevel
+  client?: RequirementLevel;
+  server?: RequirementLevel;
   modrinthPage?: string;
   icon_url?: string;
   description?: string;

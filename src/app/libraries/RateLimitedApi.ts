@@ -1,6 +1,6 @@
-import {interval, map, Observable, of, startWith} from "rxjs";
-import Swal from "sweetalert2";
-import {HttpHeaders} from "@angular/common/http";
+import { interval, map, Observable, of, startWith } from 'rxjs';
+import Swal from 'sweetalert2';
+import { HttpHeaders } from '@angular/common/http';
 
 export abstract class RateLimitedApi {
   protected abstract apiName: string;
@@ -24,15 +24,15 @@ export abstract class RateLimitedApi {
   }
 
   // The maximum number of requests allowed in the current period
-  public get rateLimitLimit(): RateLimitInfo["limit"] | null {
+  public get rateLimitLimit(): RateLimitInfo['limit'] | null {
     return this._rateLimit?.limit ?? null;
   }
   // The number of requests remaining in the current period
-  public get rateLimitRemaining(): RateLimitInfo["remaining"] | null {
+  public get rateLimitRemaining(): RateLimitInfo['remaining'] | null {
     return this._rateLimit?.remaining ?? null;
   }
   // The time when the rate limit resets
-  public get rateLimitResetTime(): RateLimitInfo["resetTime"] {
+  public get rateLimitResetTime(): RateLimitInfo['resetTime'] {
     return this._rateLimit?.resetTime ?? null;
   }
   // Whether the rate limit is being tracked client-side
@@ -48,7 +48,10 @@ export abstract class RateLimitedApi {
       return null;
     }
     const now = new Date();
-    return Math.max(0, Math.round((this._rateLimit.resetTime.getTime() - now.getTime()) / 1000));
+    return Math.max(
+      0,
+      Math.round((this._rateLimit.resetTime.getTime() - now.getTime()) / 1000),
+    );
   }
   public getRateLimitSecondsUntilReset$ = interval(1000).pipe(
     startWith(this.getRateLimitSecondsUntilReset()),
@@ -73,7 +76,7 @@ export abstract class RateLimitedApi {
       this._rateLimit = {
         limit,
         remaining,
-        resetTime: resetTime
+        resetTime: resetTime,
       };
       this._isClientSideRateLimit = false;
     }
@@ -86,21 +89,20 @@ export abstract class RateLimitedApi {
     }
   }
 
-
   /**
    * Extract rate limit information from headers (API-specific implementation)
    */
   protected extractRateLimitHeader(
     headers: HttpHeaders | undefined,
-    type: 'limit' | 'remaining'
+    type: 'limit' | 'remaining',
   ): number | null;
   protected extractRateLimitHeader(
     headers: HttpHeaders | undefined,
-    type: 'reset'
+    type: 'reset',
   ): Date | null;
   protected extractRateLimitHeader(
     headers: HttpHeaders | undefined,
-    type: 'limit' | 'remaining' | 'reset'
+    type: 'limit' | 'remaining' | 'reset',
   ): number | Date | null {
     if (!headers) {
       return null;
@@ -143,7 +145,7 @@ export abstract class RateLimitedApi {
     this._isClientSideRateLimit = true;
     // If the rate limit is not set or has expired, reset it
     if (this._rateLimit === null || this._rateLimit.resetTime! <= new Date()) {
-      this._rateLimit = {...this._rateLimitInfo};
+      this._rateLimit = { ...this._rateLimitInfo };
     }
     // Reduce the remaining count
     if (this._rateLimit.remaining > 0) {
@@ -156,9 +158,11 @@ export abstract class RateLimitedApi {
    */
   protected handleRateLimitExceeded(error: any): Observable<any> {
     if (!this._rateLimit) {
-      return of({})
+      return of({});
     }
-    console.log(`${this.apiName} rate limit reached. Wait for ${this.getRateLimitSecondsUntilReset()} seconds.`);
+    console.log(
+      `${this.apiName} rate limit reached. Wait for ${this.getRateLimitSecondsUntilReset()} seconds.`,
+    );
 
     // Show user notification (you can customize this)
     this.showRateLimitNotification();
@@ -185,14 +189,14 @@ export abstract class RateLimitedApi {
         const b: HTMLElement = Swal.getHtmlContainer()!.querySelector('b')!;
         timerInterval = setInterval(() => {
           b.textContent = String(Math.round(Swal.getTimerLeft()! / 1000));
-        }, 100)
+        }, 100);
       },
       willClose: () => {
         if (timerInterval) {
-          clearInterval(timerInterval)
+          clearInterval(timerInterval);
         }
-      }
-    })
+      },
+    });
   }
 
   /**

@@ -8,9 +8,8 @@ describe('LoaderSelectorComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ LoaderSelectorComponent ]
-    })
-    .compileComponents();
+      declarations: [LoaderSelectorComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(LoaderSelectorComponent);
     component = fixture.componentInstance;

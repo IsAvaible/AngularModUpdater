@@ -6,10 +6,10 @@ import { GitHub } from '../libraries/github/github';
  * (Adheres to the Singleton pattern)
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class GitHubService extends GitHub {
-  constructor() { 
+  constructor() {
     super();
   }
 }

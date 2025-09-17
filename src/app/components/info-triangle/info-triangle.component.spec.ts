@@ -8,9 +8,8 @@ describe('InfoTriangleComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ InfoTriangleComponent ]
-    })
-    .compileComponents();
+      declarations: [InfoTriangleComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(InfoTriangleComponent);
     component = fixture.componentInstance;

@@ -8,9 +8,8 @@ describe('FileDropzoneComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ FileDropzoneComponent ]
-    })
-    .compileComponents();
+      declarations: [FileDropzoneComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(FileDropzoneComponent);
     component = fixture.componentInstance;

@@ -1,4 +1,9 @@
-<div class="mb-1 text-base font-medium text-indigo-700 dark:text-indigo-500">Loading - {{Math.round(percent*100)}}%</div>
+<div class="mb-1 text-base font-medium text-indigo-700 dark:text-indigo-500">
+  Loading - {{ Math.round(percent * 100) }}%
+</div>
 <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700">
-  <div class="bg-indigo-600 h-2.5 rounded-full dark:bg-indigo-500" [ngStyle]="{'width': percent*100 + '%'}"></div>
+  <div
+    class="bg-indigo-600 h-2.5 rounded-full dark:bg-indigo-500"
+    [ngStyle]="{ width: percent * 100 + '%' }"
+  ></div>
 </div>

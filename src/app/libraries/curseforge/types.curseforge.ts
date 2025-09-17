@@ -153,12 +153,12 @@ export enum ModsSearchSortField {
   Author = 5,
   TotalDownloads = 6,
   Category = 7,
-  GameVersion = 8
+  GameVersion = 8,
 }
 
 export enum SortOrder {
-  Ascending = "asc",
-  Descending = "desc"
+  Ascending = 'asc',
+  Descending = 'desc',
 }
 
 export enum ModLoaderType {
@@ -167,13 +167,13 @@ export enum ModLoaderType {
   Cauldron = 2,
   LiteLoader = 3,
   Fabric = 4,
-  Quilt = 5
+  Quilt = 5,
 }
 
 export enum FileReleaseType {
   Release = 1,
   Beta = 2,
-  Alpha = 3
+  Alpha = 3,
 }
 
 export enum FileStatus {
@@ -191,12 +191,12 @@ export enum FileStatus {
   Deprecated = 12,
   Baking = 13,
   AwaitingPublishing = 14,
-  FailedPublishing = 15
+  FailedPublishing = 15,
 }
 
 export enum HashAlgo {
   Sha1 = 1,
-  Md5 = 2
+  Md5 = 2,
 }
 
 export enum DependencyType {
@@ -205,5 +205,5 @@ export enum DependencyType {
   RequiredDependency = 3,
   Tool = 4,
   Incompatible = 5,
-  Include = 6
+  Include = 6,
 }

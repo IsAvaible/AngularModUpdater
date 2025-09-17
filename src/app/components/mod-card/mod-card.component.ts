@@ -1,7 +1,10 @@
-import {Component, Input} from '@angular/core';
-import {ModrinthProject} from "../../libraries/modrinth/types.modrinth";
-import {ExtendedVersion, VersionStatus} from "../mod-panel/mod-panel.component";
-import {animate, style, transition, trigger} from "@angular/animations";
+import { Component, Input } from '@angular/core';
+import { ModrinthProject } from '../../libraries/modrinth/types.modrinth';
+import {
+  ExtendedVersion,
+  VersionStatus,
+} from '../mod-panel/mod-panel.component';
+import { animate, style, transition, trigger } from '@angular/animations';
 
 @Component({
   selector: 'app-mod-card',
@@ -10,14 +13,14 @@ import {animate, style, transition, trigger} from "@angular/animations";
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
-        style({height: 0}),
-        animate('150ms ease-out', style({height: '*'}))
+        style({ height: 0 }),
+        animate('150ms ease-out', style({ height: '*' })),
       ]),
       transition(':leave', [
-        animate('150ms ease-in', style({height: 0, opacity: 0}))
-      ])
-    ])
-  ]
+        animate('150ms ease-in', style({ height: 0, opacity: 0 })),
+      ]),
+    ]),
+  ],
 })
 export class ModCardComponent {
   @Input() versions!: ExtendedVersion[];
@@ -26,17 +29,20 @@ export class ModCardComponent {
 
   showChangelog = false;
 
-  get selectedVersion() : ExtendedVersion {
-    return this.versions.find(v => v.selected)!;
+  get selectedVersion(): ExtendedVersion {
+    return this.versions.find((v) => v.selected)!;
   }
 
   set selectedVersion(version: ExtendedVersion) {
-    this.versions.find(v => v.selected)!.selected = false;
-    this.versions.find(v => v.id === version.id)!.selected = true;
+    this.versions.find((v) => v.selected)!.selected = false;
+    this.versions.find((v) => v.id === version.id)!.selected = true;
   }
 
   get fileUrl() {
-    return (this.selectedVersion.files.find(f => f.primary) || this.selectedVersion.files[0]).url;
+    return (
+      this.selectedVersion.files.find((f) => f.primary) ||
+      this.selectedVersion.files[0]
+    ).url;
   }
 
   get isGitHubMod() {
@@ -44,15 +50,15 @@ export class ModCardComponent {
   }
 
   get authorUrl() {
-    return this.isGitHubMod ?
-      `https://github.com/${this.selectedVersion.author_id}` :
-      `https://modrinth.com/user/${this.selectedVersion.author_id}`;
+    return this.isGitHubMod
+      ? `https://github.com/${this.selectedVersion.author_id}`
+      : `https://modrinth.com/user/${this.selectedVersion.author_id}`;
   }
 
   get authorLinkTitle() {
-    return this.isGitHubMod ?
-      "Open the Author's GitHub Profile" :
-      "Open the Author's Modrinth Page";
+    return this.isGitHubMod
+      ? "Open the Author's GitHub Profile"
+      : "Open the Author's Modrinth Page";
   }
 
   toggleChangelog() {
@@ -65,5 +71,5 @@ export class ModCardComponent {
 
 export enum View {
   Grid,
-  List
+  List,
 }

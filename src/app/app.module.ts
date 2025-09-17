@@ -1,8 +1,8 @@
-import {NgModule, isDevMode, SecurityContext} from '@angular/core';
+import { NgModule, isDevMode, SecurityContext } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgxDropzoneModule } from 'ngx-dropzone';
-import {HttpClient, HttpClientModule} from '@angular/common/http';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
 import { TitleComponent } from './components/title/title.component';
@@ -13,17 +13,17 @@ import { StartButtonComponent } from './components/start-button/start-button.com
 import { FooterComponent } from './components/footer/footer.component';
 import { ModPanelComponent } from './components/mod-panel/mod-panel.component';
 import { ModCardComponent } from './components/mod-card/mod-card.component';
-import {FormsModule} from "@angular/forms";
-import {OrderModule} from "ngx-order-pipe";
+import { FormsModule } from '@angular/forms';
+import { OrderModule } from 'ngx-order-pipe';
 import { DateAgoPipe } from './pipes/date-ago/date-ago.pipe';
 import { ShortNumberPipe } from './pipes/short-number/short-number.pipe';
 import { LoaderSelectorComponent } from './components/loader-selector/loader-selector.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { InfoTriangleComponent } from './components/info-triangle/info-triangle.component';
 import { InfoSectionComponent } from './components/info-section/info-section.component';
-import {MarkdownModule} from "ngx-markdown";
+import { MarkdownModule } from 'ngx-markdown';
 import { ModStatusLabelComponent } from './components/mod-card/mod-status-label/mod-status-label.component';
-import { ProjectTypeLabelComponent } from "./components/mod-card/project-type-label/project-type-label.component";
+import { ProjectTypeLabelComponent } from './components/mod-card/project-type-label/project-type-label.component';
 import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator.component';
 
 @NgModule({
@@ -44,7 +44,7 @@ import { LoadingIndicatorComponent } from './components/loading-indicator/loadin
     InfoSectionComponent,
     ModStatusLabelComponent,
     ProjectTypeLabelComponent,
-    LoadingIndicatorComponent
+    LoadingIndicatorComponent,
   ],
   imports: [
     BrowserModule,
@@ -57,11 +57,14 @@ import { LoadingIndicatorComponent } from './components/loading-indicator/loadin
       enabled: !isDevMode(),
       // Register the ServiceWorker as soon as the application is stable
       // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000'
+      registrationStrategy: 'registerWhenStable:30000',
     }),
-    MarkdownModule.forRoot({ loader: HttpClient, sanitize: SecurityContext.NONE })
+    MarkdownModule.forRoot({
+      loader: HttpClient,
+      sanitize: SecurityContext.NONE,
+    }),
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

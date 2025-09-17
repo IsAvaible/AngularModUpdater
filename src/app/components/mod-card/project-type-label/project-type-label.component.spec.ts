@@ -8,9 +8,8 @@ describe('ModStatusLabelComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ ProjectTypeLabelComponent ]
-    })
-    .compileComponents();
+      declarations: [ProjectTypeLabelComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectTypeLabelComponent);
     component = fixture.componentInstance;

@@ -1,6 +1,13 @@
-import {Component, inject} from '@angular/core';
-import {ModrinthService} from "../../services/modrinth.service";
-import {animate, state, style, transition, trigger, AnimationEvent} from "@angular/animations";
+import { Component, inject } from '@angular/core';
+import { ModrinthService } from '../../services/modrinth.service';
+import {
+  animate,
+  state,
+  style,
+  transition,
+  trigger,
+  AnimationEvent,
+} from '@angular/animations';
 
 @Component({
   selector: 'app-info-triangle',
@@ -8,23 +15,20 @@ import {animate, state, style, transition, trigger, AnimationEvent} from "@angul
   styleUrls: ['./info-triangle.component.css'],
   animations: [
     trigger('openClose', [
-      transition('open => closed', [
-        animate('250ms ease-in')
-      ]),
-      transition('closed => open', [
-        animate('350ms ease-out')
-      ]),
-      state('open', style({
-        // The css of the triangle guarantees that the triangles sides have the same length (aspect-ratio: 1/1, width: auto, height: auto)
-        // We can therefore set the min-width and min-height to the respective values that make sure the triangle fills the screen
-        minWidth: '200vw',
-        minHeight: '200vh',
-      })),
-      state('closed', style({
-
-      })),
+      transition('open => closed', [animate('250ms ease-in')]),
+      transition('closed => open', [animate('350ms ease-out')]),
+      state(
+        'open',
+        style({
+          // The css of the triangle guarantees that the triangles sides have the same length (aspect-ratio: 1/1, width: auto, height: auto)
+          // We can therefore set the min-width and min-height to the respective values that make sure the triangle fills the screen
+          minWidth: '200vw',
+          minHeight: '200vh',
+        }),
+      ),
+      state('closed', style({})),
     ]),
-    ]
+  ],
 })
 export class InfoTriangleComponent {
   showInfoSection = false;
@@ -33,7 +37,8 @@ export class InfoTriangleComponent {
   modrinth = inject(ModrinthService);
 
   toggleInfoSection() {
-    if (this.showInfoSection == this.showInfoSectionTransition) {  // No unfinished animations
+    if (this.showInfoSection == this.showInfoSectionTransition) {
+      // No unfinished animations
       this.showInfoSectionTransition = !this.showInfoSectionTransition;
     }
   }
@@ -42,7 +47,7 @@ export class InfoTriangleComponent {
     if ($event.toState === 'open') {
       this.showInfoSection = true;
     }
-  }
+  };
 
   animationDone($event: AnimationEvent) {
     if ($event.toState === 'closed') {

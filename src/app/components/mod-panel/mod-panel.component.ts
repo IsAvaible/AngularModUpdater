@@ -1,5 +1,5 @@
-import {Component, inject, OnDestroy, OnInit} from '@angular/core';
-import {FilesService} from "../../services/files.service";
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { FilesService } from '../../services/files.service';
 import {
   concatMap,
   delay,
@@ -13,28 +13,31 @@ import {
   of,
   Subject,
   Subscription,
-  tap
-} from "rxjs";
-import {MinecraftVersion, VersionsService} from "../../services/versions.service";
-import {HttpClient} from "@angular/common/http";
-import {AnnotatedError} from "../../libraries/BaseApiProvider";
+  tap,
+} from 'rxjs';
+import {
+  MinecraftVersion,
+  VersionsService,
+} from '../../services/versions.service';
+import { HttpClient } from '@angular/common/http';
+import { AnnotatedError } from '../../libraries/BaseApiProvider';
 import {
   Modpack,
   ModrinthProject,
   ModrinthVersion,
-  ProjectType
-} from "../../libraries/modrinth/types.modrinth";
-import {View} from "../mod-card/mod-card.component";
-import * as JSZip from "jszip";
-import {saveAs} from 'file-saver';
-import {Loader, LoaderService} from "../../services/loader.service";
-import Swal from "sweetalert2";
-import {ModrinthService} from "../../services/modrinth.service";
-import {CurseforgeService} from "../../services/curseforge.service";
-import {GitHubService} from "../../services/github.service";
-import {InteroperabilityService} from "../../services/interoperability.service";
-import {CurseforgeFile} from "../../libraries/curseforge/types.curseforge";
-import {CurseforgeSupportService} from "../../services/curseforgeSupport.service";
+  ProjectType,
+} from '../../libraries/modrinth/types.modrinth';
+import { View } from '../mod-card/mod-card.component';
+import * as JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { Loader, LoaderService } from '../../services/loader.service';
+import Swal from 'sweetalert2';
+import { ModrinthService } from '../../services/modrinth.service';
+import { CurseforgeService } from '../../services/curseforge.service';
+import { GitHubService } from '../../services/github.service';
+import { InteroperabilityService } from '../../services/interoperability.service';
+import { CurseforgeFile } from '../../libraries/curseforge/types.curseforge';
+import { CurseforgeSupportService } from '../../services/curseforgeSupport.service';
 
 @Component({
   selector: 'app-mod-panel',
@@ -42,15 +45,28 @@ import {CurseforgeSupportService} from "../../services/curseforgeSupport.service
   styleUrls: ['./mod-panel.component.css'],
 })
 export class ModPanelComponent implements OnInit, OnDestroy {
-  availableMods: { versions: ExtendedVersion[], project: ModrinthProject }[] = [];  // Stores all mods that are available for the selected mc version
-  unavailableMods: { file: File, project_url: string, project: ModrinthProject }[] = [];  // Stores all mods that are not available for the selected mc version
-  invalidLoaderMods: { file: File, project_url: string, project: ModrinthProject }[] = [];  // Stores all mods that are not available for the selected loader
-  unresolvedMods: { file: File, slug: string | undefined, annotation: AnnotatedError | null }[] = [];  // Stores all mods that could not be resolved (network error, etc.)
+  availableMods: { versions: ExtendedVersion[]; project: ModrinthProject }[] =
+    []; // Stores all mods that are available for the selected mc version
+  unavailableMods: {
+    file: File;
+    project_url: string;
+    project: ModrinthProject;
+  }[] = []; // Stores all mods that are not available for the selected mc version
+  invalidLoaderMods: {
+    file: File;
+    project_url: string;
+    project: ModrinthProject;
+  }[] = []; // Stores all mods that are not available for the selected loader
+  unresolvedMods: {
+    file: File;
+    slug: string | undefined;
+    annotation: AnnotatedError | null;
+  }[] = []; // Stores all mods that could not be resolved (network error, etc.)
 
   loading = false; // Whether the site is currently processing mods
   loadingPercent: number = 1; //
 
-  order: any[] = ['versions[0].versionStatus', 'project.title'];  // Stores the order of the available mods list
+  order: any[] = ['versions[0].versionStatus', 'project.title']; // Stores the order of the available mods list
 
   files: File[] = [];
   processedFilesNames: string[] = [];
@@ -67,9 +83,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private finishedSubscription!: Subscription;
   private percentSubscription!: Subscription;
 
-
-  constructor() {
-  }
+  constructor() {}
 
   private filesService = inject(FilesService);
   private versionsService = inject(VersionsService);
@@ -95,20 +109,23 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // thy fates shall be intertwined
-    this.filesSubscription = this.filesService.files.subscribe(files => {
+    this.filesSubscription = this.filesService.files.subscribe((files) => {
       this.files = files;
     });
-    this.versionsSubscription = this.versionsService.versions.subscribe(versions => {
-      this.mcVersions = versions;
+    this.versionsSubscription = this.versionsService.versions.subscribe(
+      (versions) => {
+        this.mcVersions = versions;
+        this.resetLists();
+      },
+    );
+    this.loaderSubscription = this.loaderService.loader.subscribe((loader) => {
+      this.loader = loader;
       this.resetLists();
     });
-    this.loaderSubscription = this.loaderService.loader.subscribe(loader => {
-      this.loader = loader;
-      this.resetLists()
-    })
-    this.curseforgeSupscription = this.curseforgeSupportService.support.subscribe(support => {
-      this.curseforgeSupport = support;
-    });
+    this.curseforgeSupscription =
+      this.curseforgeSupportService.support.subscribe((support) => {
+        this.curseforgeSupport = support;
+      });
   }
 
   ngOnDestroy() {
@@ -125,7 +142,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    */
   handleRequestError(file: File) {
     // Remove the file from the processed and toProcess lists, so that it can be reprocessed and won't be removed from the files list
-    this.processedFilesNames.splice(this.processedFilesNames.indexOf(file.name), 1);
+    this.processedFilesNames.splice(
+      this.processedFilesNames.indexOf(file.name),
+      1,
+    );
     this.toProcess.splice(this.toProcess.indexOf(file), 1);
   }
 
@@ -135,15 +155,23 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   filterProcessed() {
     const prevLen = this.files.length;
     // Remove already processed files. This is done to prevent duplicates
-    this.files = this.files.filter(file => this.processedFilesNames.indexOf(file.name) == -1); // Remove already processed files
+    this.files = this.files.filter(
+      (file) => this.processedFilesNames.indexOf(file.name) == -1,
+    ); // Remove already processed files
     // Remove files that will be reprocessed from the unresolved mods list
-    this.unresolvedMods = this.unresolvedMods.filter(um => this.files.map(file => file.name).indexOf(um.file.name) == -1);
+    this.unresolvedMods = this.unresolvedMods.filter(
+      (um) => this.files.map((file) => file.name).indexOf(um.file.name) == -1,
+    );
     // Propagate the changes to the files service
     this.filesService.setFiles(this.files);
 
-    if (prevLen != this.files.length) { // If there were duplicates
+    if (prevLen != this.files.length) {
+      // If there were duplicates
       const skipped = prevLen - this.files.length;
-      const message = `Skipping ${skipped} file` + (skipped > 1 ? "s that were" : " that was") + " already processed";
+      const message =
+        `Skipping ${skipped} file` +
+        (skipped > 1 ? 's that were' : ' that was') +
+        ' already processed';
       console.log(message);
       Swal.fire({
         position: 'top-end',
@@ -151,8 +179,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         title: message,
         showConfirmButton: false,
         timer: 3000,
-        backdrop: `rgba(0, 0, 0, 0.0)`
-      })
+        backdrop: `rgba(0, 0, 0, 0.0)`,
+      });
     }
   }
 
@@ -162,7 +190,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param mcVersion The selected minecraft version
    * @param hash The hash of the file
    */
-  async processFile(file: File, mcVersion: MinecraftVersion, hash?: string): Promise<boolean> {
+  async processFile(
+    file: File,
+    mcVersion: MinecraftVersion,
+    hash?: string,
+  ): Promise<boolean> {
     const reader = new FileReader();
     let fileHash: string;
     let fileBuffer: ArrayBuffer | null = null;
@@ -170,7 +202,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     if (hash == null) {
       fileBuffer = await new Promise<ArrayBuffer | null>((resolve, reject) => {
         reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-        reader.onerror = () => reject(new Error(`Error reading file ${file.name}`));
+        reader.onerror = () =>
+          reject(new Error(`Error reading file ${file.name}`));
         reader.readAsArrayBuffer(file);
       });
 
@@ -179,7 +212,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         this.unresolvedMods.push({
           file,
           slug: undefined,
-          annotation: {error: {status: 0, message: "Could not read file"}}
+          annotation: { error: { status: 0, message: 'Could not read file' } },
         });
         return false;
       }
@@ -209,7 +242,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
       // If Modrinth fails, and we have the file buffer, try Curseforge
       if (fileBuffer) {
-        const curseforgeResult = await this.tryCurseforge(fileBuffer, file, mcVersion);
+        const curseforgeResult = await this.tryCurseforge(
+          fileBuffer,
+          file,
+          mcVersion,
+        );
         if (curseforgeResult) return true;
       }
 
@@ -219,7 +256,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       this.unresolvedMods.push({
         file,
         slug: undefined,
-        annotation: {error: {status: 0, message: error.message || "Unknown error"}}
+        annotation: {
+          error: { status: 0, message: error.message || 'Unknown error' },
+        },
       });
       return false;
     }
@@ -232,21 +271,37 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param mcVersion The selected minecraft version
    * @private
    */
-  private async tryModrinth(fileHash: string, file: File, mcVersion: MinecraftVersion): Promise<boolean> {
+  private async tryModrinth(
+    fileHash: string,
+    file: File,
+    mcVersion: MinecraftVersion,
+  ): Promise<boolean> {
     const versionData = await this.loadVersionData(fileHash, file);
     if (!versionData) return false;
 
-    const projectData = await this.loadProjectData(versionData.project_id, file);
+    const projectData = await this.loadProjectData(
+      versionData.project_id,
+      file,
+    );
     if (!projectData) return false;
 
-    const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type);
+    const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(
+      projectData.project_type,
+    );
 
     const versionsData = await this.loadVersionsData(
-      projectData.id, mcVersion.version, ignoreLoader ? [] : this.getValidLoaders(), file
+      projectData.id,
+      mcVersion.version,
+      ignoreLoader ? [] : this.getValidLoaders(),
+      file,
     );
     if (versionsData == null || versionsData.length == 0) {
       if (versionsData != null) {
-        this.unavailableMods.push({file, project_url: projectData.slug, project: projectData});
+        this.unavailableMods.push({
+          file,
+          project_url: projectData.slug,
+          project: projectData,
+        });
       }
       return false;
     }
@@ -262,66 +317,102 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param mcVersion The selected minecraft version
    * @private
    */
-  private async tryCurseforge(fileBuffer: ArrayBuffer, file: File, mcVersion: MinecraftVersion): Promise<boolean> {
-    const curseforgeFile = await firstValueFrom(this.curseforge.getFileFromBuffer(fileBuffer));
+  private async tryCurseforge(
+    fileBuffer: ArrayBuffer,
+    file: File,
+    mcVersion: MinecraftVersion,
+  ): Promise<boolean> {
+    const curseforgeFile = await firstValueFrom(
+      this.curseforge.getFileFromBuffer(fileBuffer),
+    );
 
     if (this.curseforge.isAnnotatedError(curseforgeFile)) {
       return false;
     }
 
-    const mod = await firstValueFrom(this.curseforge.getMod(curseforgeFile.modId));
+    const mod = await firstValueFrom(
+      this.curseforge.getMod(curseforgeFile.modId),
+    );
     if (this.curseforge.isAnnotatedError(mod)) {
       return false;
     }
 
-
     // Check if the mod has files for the selected loader
-    const targetVersionsLoader = mod.latestFilesIndexes.filter(f => (this.interoperability.convertCurseforgeLoaderToModrinthLoader(f.modLoader) || this.loader) == this.loader);
+    const targetVersionsLoader = mod.latestFilesIndexes.filter(
+      (f) =>
+        (this.interoperability.convertCurseforgeLoaderToModrinthLoader(
+          f.modLoader,
+        ) || this.loader) == this.loader,
+    );
     if (targetVersionsLoader.length == 0) {
-      if (this.invalidLoaderMods.some(m => m.file == file) || this.unavailableMods.some(m => m.file == file)) {
+      if (
+        this.invalidLoaderMods.some((m) => m.file == file) ||
+        this.unavailableMods.some((m) => m.file == file)
+      ) {
         return false;
       }
 
       this.removePreviousErrors(file);
-      const project = this.interoperability.convertCurseforgeToModrinthProject(mod);
-      this.invalidLoaderMods.push({file, project_url: project.project_url, project: project});
+      const project =
+        this.interoperability.convertCurseforgeToModrinthProject(mod);
+      this.invalidLoaderMods.push({
+        file,
+        project_url: project.project_url,
+        project: project,
+      });
       return false;
     }
 
     // Check if the mod has files for the selected mc version
-    const targetVersionIndices = targetVersionsLoader.filter(f => f.gameVersion.includes(mcVersion.version));
+    const targetVersionIndices = targetVersionsLoader.filter((f) =>
+      f.gameVersion.includes(mcVersion.version),
+    );
     if (!targetVersionIndices || targetVersionIndices.length == 0) {
-      if (this.unavailableMods.some(m => m.file == file)) {
+      if (this.unavailableMods.some((m) => m.file == file)) {
         return false;
       }
 
       this.removePreviousErrors(file);
-      const project = this.interoperability.convertCurseforgeToModrinthProject(mod);
-      this.unavailableMods.push({file, project_url: project.project_url, project: project});
+      const project =
+        this.interoperability.convertCurseforgeToModrinthProject(mod);
+      this.unavailableMods.push({
+        file,
+        project_url: project.project_url,
+        project: project,
+      });
       return false;
     }
 
     // Get the files
     let targetFilesRequests = [];
     for (const version of targetVersionIndices) {
-      targetFilesRequests.push(firstValueFrom(this.curseforge.getFileFromIndex(version.fileId)));
+      targetFilesRequests.push(
+        firstValueFrom(this.curseforge.getFileFromIndex(version.fileId)),
+      );
     }
     // @ts-ignore
-    const targetFiles: CurseforgeFile[] = (await Promise.all(targetFilesRequests)).filter(f => f != null && !this.curseforge.isAnnotatedError(f));
+    const targetFiles: CurseforgeFile[] = (
+      await Promise.all(targetFilesRequests)
+    ).filter((f) => f != null && !this.curseforge.isAnnotatedError(f));
 
     if (targetFiles.length == 0) {
       return false;
     }
 
     // Get the changelog for the first file
-    const changelog = await firstValueFrom(this.curseforge.getModFileChangelog(mod.id, targetFiles[0].id));
+    const changelog = await firstValueFrom(
+      this.curseforge.getModFileChangelog(mod.id, targetFiles[0].id),
+    );
 
     this.removePreviousErrors(file);
 
     // Convert Curseforge data to Modrinth format and add to available mods
-    const modrinthProject = this.interoperability.convertCurseforgeToModrinthProject(mod);
-    const modrinthVersions = this.interoperability.convertCurseforgeToModrinthVersions(targetFiles);
-    const modrinthVersion = this.interoperability.convertCurseforgeToModrinthVersion(curseforgeFile);
+    const modrinthProject =
+      this.interoperability.convertCurseforgeToModrinthProject(mod);
+    const modrinthVersions =
+      this.interoperability.convertCurseforgeToModrinthVersions(targetFiles);
+    const modrinthVersion =
+      this.interoperability.convertCurseforgeToModrinthVersion(curseforgeFile);
 
     if (!this.curseforge.isAnnotatedError(changelog)) {
       modrinthVersions[0].changelog = changelog;
@@ -337,8 +428,18 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param mcVersion The selected minecraft version
    * @private
    */
-  private async tryGitHub(file: File, mcVersion: MinecraftVersion): Promise<boolean> {
-    const modInfo = await firstValueFrom(this.github.getModInfoForFile(file.name, this.loader, mcVersion.version, this.modrinth));
+  private async tryGitHub(
+    file: File,
+    mcVersion: MinecraftVersion,
+  ): Promise<boolean> {
+    const modInfo = await firstValueFrom(
+      this.github.getModInfoForFile(
+        file.name,
+        this.loader,
+        mcVersion.version,
+        this.modrinth,
+      ),
+    );
 
     if (!modInfo) {
       return false;
@@ -347,21 +448,32 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.removePreviousErrors(file);
 
     // Convert GitHub data to Modrinth format using interoperability service
-    const modrinthProject = this.interoperability.convertGitHubToModrinthProject(modInfo);
-    const modrinthVersions = this.interoperability.convertGitHubToModrinthVersions(
-      modInfo.versions,
-      modInfo.project.id,
-      mcVersion.version,
-      modInfo.config.owner
-    );
+    const modrinthProject =
+      this.interoperability.convertGitHubToModrinthProject(modInfo);
+    const modrinthVersions =
+      this.interoperability.convertGitHubToModrinthVersions(
+        modInfo.versions,
+        modInfo.project.id,
+        mcVersion.version,
+        modInfo.config.owner,
+      );
 
     // Set the correct loaders for the versions
-    modrinthVersions.forEach(version => version.loaders = modInfo.project.loaders);
+    modrinthVersions.forEach(
+      (version) => (version.loaders = modInfo.project.loaders),
+    );
 
     // Create a mock installed version for comparison
-    const installedVersion = this.interoperability.createGitHubInstalledVersion(file.name, modInfo.project.id);
+    const installedVersion = this.interoperability.createGitHubInstalledVersion(
+      file.name,
+      modInfo.project.id,
+    );
 
-    this.addToAvailableMods(modrinthProject, modrinthVersions, installedVersion);
+    this.addToAvailableMods(
+      modrinthProject,
+      modrinthVersions,
+      installedVersion,
+    );
     return true;
   }
 
@@ -372,7 +484,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @private
    */
   private async loadVersionData(fileHash: string, file: File) {
-    const versionData = await firstValueFrom(this.modrinth.getVersionFromHash(fileHash));
+    const versionData = await firstValueFrom(
+      this.modrinth.getVersionFromHash(fileHash),
+    );
     if (this.modrinth.isAnnotatedError(versionData)) {
       await this.handleAnnotatedErrorSilent(versionData, file);
       return null;
@@ -387,14 +501,25 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @private
    */
   private async loadProjectData(projectId: string, file: File) {
-    const projectData = await firstValueFrom(this.modrinth.getProject(projectId));
+    const projectData = await firstValueFrom(
+      this.modrinth.getProject(projectId),
+    );
     if (this.modrinth.isAnnotatedError(projectData)) {
       await this.handleAnnotatedErrorSilent(projectData, file, projectId);
       return null;
     }
 
-    if ([ProjectType.Mod, ProjectType.ModPack].includes(projectData.project_type) && !this.isLoaderCompatible(projectData.loaders)) {
-      this.invalidLoaderMods.push({file, project_url: projectData.project_url, project: projectData});
+    if (
+      [ProjectType.Mod, ProjectType.ModPack].includes(
+        projectData.project_type,
+      ) &&
+      !this.isLoaderCompatible(projectData.loaders)
+    ) {
+      this.invalidLoaderMods.push({
+        file,
+        project_url: projectData.project_url,
+        project: projectData,
+      });
       return null;
     }
     return projectData;
@@ -409,10 +534,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @private
    */
   private async loadVersionsData(
-    projectId: string, version: string, validLoaders: string[], file: File
+    projectId: string,
+    version: string,
+    validLoaders: string[],
+    file: File,
   ) {
     const targetVersionData = await firstValueFrom(
-      this.modrinth.getVersionsFromId(projectId, version, validLoaders)
+      this.modrinth.getVersionsFromId(projectId, version, validLoaders),
     );
     if (this.modrinth.isAnnotatedError(targetVersionData)) {
       await this.handleAnnotatedErrorSilent(targetVersionData, file);
@@ -428,10 +556,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param versionData The version data
    * @private
    */
-  private addToAvailableMods(projectData: ModrinthProject, versionsData: ModrinthVersion[], versionData: ModrinthVersion) {
-    const annotatedVersions = this.annotateVersionStatus(versionData, versionsData as ExtendedVersion[], this.mcVersions.find(v => v.selected)!.version);
+  private addToAvailableMods(
+    projectData: ModrinthProject,
+    versionsData: ModrinthVersion[],
+    versionData: ModrinthVersion,
+  ) {
+    const annotatedVersions = this.annotateVersionStatus(
+      versionData,
+      versionsData as ExtendedVersion[],
+      this.mcVersions.find((v) => v.selected)!.version,
+    );
     if (!this.availableMods.some((mod) => mod.project.id === projectData.id)) {
-      this.availableMods.push({versions: annotatedVersions, project: projectData});
+      this.availableMods.push({
+        versions: annotatedVersions,
+        project: projectData,
+      });
     }
   }
 
@@ -440,9 +579,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param file The file to remove errors for
    */
   private removePreviousErrors(file: File) {
-    this.unresolvedMods = this.unresolvedMods.filter(um => um.file != file);
-    this.invalidLoaderMods = this.invalidLoaderMods.filter(im => im.file != file);
-    this.unavailableMods = this.unavailableMods.filter(um => um.file != file);
+    this.unresolvedMods = this.unresolvedMods.filter((um) => um.file != file);
+    this.invalidLoaderMods = this.invalidLoaderMods.filter(
+      (im) => im.file != file,
+    );
+    this.unavailableMods = this.unavailableMods.filter((um) => um.file != file);
   }
 
   /**
@@ -453,8 +594,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private isLoaderCompatible(loaders: string[]): boolean {
     return (
       loaders.includes(this.loader.toLowerCase() as Loader) ||
-      (this.loader === Loader.quilt && loaders.includes(Loader.fabric.toLowerCase() as Loader)) ||
-      (this.loader === Loader.neoforge && loaders.includes(Loader.forge.toLowerCase() as Loader))
+      (this.loader === Loader.quilt &&
+        loaders.includes(Loader.fabric.toLowerCase() as Loader)) ||
+      (this.loader === Loader.neoforge &&
+        loaders.includes(Loader.forge.toLowerCase() as Loader))
     );
   }
 
@@ -479,9 +622,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   private annotateVersionStatus(
     installedVersion: any,
     targetVersions: ExtendedVersion[],
-    targetedMcVersion: string
+    targetedMcVersion: string,
   ): ExtendedVersion[] {
-    const uploadedMcVersion: string | null = installedVersion.game_versions[installedVersion.game_versions.length - 1] || installedVersion.dependencies['minecraft'];
+    const uploadedMcVersion: string | null =
+      installedVersion.game_versions[
+        installedVersion.game_versions.length - 1
+      ] || installedVersion.dependencies['minecraft'];
     return targetVersions.map((version) => {
       version.selected = version === targetVersions[0]; // Mark first version as selected
 
@@ -491,7 +637,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         return version;
       }
 
-      if (version.id === installedVersion.id || version.id === installedVersion.versionId) {
+      if (
+        version.id === installedVersion.id ||
+        version.id === installedVersion.versionId
+      ) {
         version.versionStatus = VersionStatus.Installed;
       } else if (version.date_published > installedVersion.date_published) {
         version.versionStatus = VersionStatus.Updated;
@@ -509,22 +658,26 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param slug The slug of the project
    * @private
    */
-  private async handleAnnotatedError(errorData: any, file: File, slug?: string) {
+  private async handleAnnotatedError(
+    errorData: any,
+    file: File,
+    slug?: string,
+  ) {
     if (errorData.error.status === 410) {
       await Swal.fire({
-        position: "top-end",
-        icon: "error",
-        title: "API Deprecated",
-        text: "The Modrinth API has been deprecated. Please notify the maintainer on GitHub.",
+        position: 'top-end',
+        icon: 'error',
+        title: 'API Deprecated',
+        text: 'The Modrinth API has been deprecated. Please notify the maintainer on GitHub.',
         showConfirmButton: false,
         timer: 3000,
-        backdrop: "rgba(0, 0, 0, 0.0)",
+        backdrop: 'rgba(0, 0, 0, 0.0)',
       });
     } else if (errorData.error.status !== 404) {
       this.handleRequestError(file);
     }
     if (errorData.error.status !== 0) {
-      this.unresolvedMods.push({file, slug, annotation: errorData});
+      this.unresolvedMods.push({ file, slug, annotation: errorData });
     }
   }
 
@@ -536,16 +689,20 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param slug The slug of the project
    * @private
    */
-  private async handleAnnotatedErrorSilent(errorData: any, file: File, slug?: string) {
+  private async handleAnnotatedErrorSilent(
+    errorData: any,
+    file: File,
+    slug?: string,
+  ) {
     if (errorData.error.status === 410) {
       await Swal.fire({
-        position: "top-end",
-        icon: "error",
-        title: "API Deprecated",
-        text: "The Modrinth API has been deprecated. Please notify the maintainer on GitHub.",
+        position: 'top-end',
+        icon: 'error',
+        title: 'API Deprecated',
+        text: 'The Modrinth API has been deprecated. Please notify the maintainer on GitHub.',
         showConfirmButton: false,
         timer: 3000,
-        backdrop: "rgba(0, 0, 0, 0.0)",
+        backdrop: 'rgba(0, 0, 0, 0.0)',
       });
     } else if (errorData.error.status !== 404) {
       this.handleRequestError(file);
@@ -553,7 +710,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     // Note: We don't add to unresolvedMods here - that's handled by the caller after all APIs are tried
   }
 
-
   /**
    * Runs the mod processing on the files uploaded by the user
    * @returns [anyToProcess, finished$, percent$] where anyToProcess is a boolean indicating if there are files to process,
@@ -564,13 +720,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @returns [anyToProcess, finished$, percent$] where anyToProcess is a boolean indicating if there are files to process,
    * finished$ is an observable that emits when the processing is finished, and percent$ is an observable that emits the progress percentage
    */
-  async updateMods(): Promise<[boolean, Observable<boolean>, Observable<number>]> {
-    this.filterProcessed();  // Remove already processed files
-    let mcVersion: MinecraftVersion = this.mcVersions.find(v => v.selected)!;  // Get the selected version
+  async updateMods(): Promise<
+    [boolean, Observable<boolean>, Observable<number>]
+  > {
+    this.filterProcessed(); // Remove already processed files
+    let mcVersion: MinecraftVersion = this.mcVersions.find((v) => v.selected)!; // Get the selected version
 
     // Process JSON files first to extract modpack information
-    const jsonFiles = this.files.filter(file => file.type == 'application/json');
-    const modHashes: Array<{ hash: string, name: string, modpackFile: string }> = [];
+    const jsonFiles = this.files.filter(
+      (file) => file.type == 'application/json',
+    );
+    const modHashes: Array<{
+      hash: string;
+      name: string;
+      modpackFile: string;
+    }> = [];
 
     for (const jsonFile of jsonFiles) {
       try {
@@ -579,7 +743,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           this.unresolvedMods.push({
             file: jsonFile,
             slug: undefined,
-            annotation: {error: {status: 0, message: "Could not read modpack file"}}
+            annotation: {
+              error: { status: 0, message: 'Could not read modpack file' },
+            },
           });
           continue;
         }
@@ -589,30 +755,38 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           this.unresolvedMods.push({
             file: jsonFile,
             slug: undefined,
-            annotation: {error: {status: 0, message: "Could not parse modpack metadata"}}
+            annotation: {
+              error: { status: 0, message: 'Could not parse modpack metadata' },
+            },
           });
           continue;
         }
 
         const modpack = metadata as Modpack;
-        modHashes.push(...modpack.files.map(mod => ({
-          hash: mod.hashes['sha1'],
-          name: mod.name || mod.path.split('/').pop() || 'Unknown mod',
-          modpackFile: modpack.name ?? jsonFile.name
-        })));
+        modHashes.push(
+          ...modpack.files.map((mod) => ({
+            hash: mod.hashes['sha1'],
+            name: mod.name || mod.path.split('/').pop() || 'Unknown mod',
+            modpackFile: modpack.name ?? jsonFile.name,
+          })),
+        );
         this.processedFilesNames.push(jsonFile.name);
       } catch (error) {
         console.error(`Error processing JSON file ${jsonFile.name}:`, error);
         this.unresolvedMods.push({
           file: jsonFile,
           slug: undefined,
-          annotation: {error: {status: 0, message: "Error processing modpack file"}}
+          annotation: {
+            error: { status: 0, message: 'Error processing modpack file' },
+          },
         });
       }
     }
 
     // Filter out processed JSON files
-    this.toProcess = [...new Set(this.files.filter(file => !file.name.endsWith('.json')))];
+    this.toProcess = [
+      ...new Set(this.files.filter((file) => !file.name.endsWith('.json'))),
+    ];
 
     const anyToProcess = this.toProcess.length > 0 || modHashes.length > 0;
     if (!anyToProcess) {
@@ -631,10 +805,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         title: message,
         showConfirmButton: false,
         timer: 3000,
-        backdrop: `rgba(0, 0, 0, 0.0)`
+        backdrop: `rgba(0, 0, 0, 0.0)`,
       });
       // Trim both arrays to fit within limit
-      const hashLimit = Math.min(modHashes.length, Math.floor(290 * (modHashes.length / totalProcessCount)));
+      const hashLimit = Math.min(
+        modHashes.length,
+        Math.floor(290 * (modHashes.length / totalProcessCount)),
+      );
       const fileLimit = 290 - hashLimit;
       modHashes.splice(hashLimit);
       this.toProcess.splice(fileLimit);
@@ -647,16 +824,24 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     const percent$ = new Subject<number>();
 
     // Helper function to process a chunk of items (files or hashes)
-    const processChunk = (items: Array<File | typeof modHashes[0]>): Observable<any> => {
-      const chunkObservables = items.map(item => {
+    const processChunk = (
+      items: Array<File | (typeof modHashes)[0]>,
+    ): Observable<any> => {
+      const chunkObservables = items.map((item) => {
         if ('hash' in item) {
           // Process hash from modpack
-          return from(this.processFile(new File([], `[${item.modpackFile}] ${item.name}`), mcVersion, item.hash)).pipe(
+          return from(
+            this.processFile(
+              new File([], `[${item.modpackFile}] ${item.name}`),
+              mcVersion,
+              item.hash,
+            ),
+          ).pipe(
             tap(() => processedCounter++),
             finalize(() => {
               const percent = processedCounter / totalToProcess;
               percent$.next(percent);
-            })
+            }),
           );
         } else {
           // Process regular file
@@ -666,7 +851,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
               const percent = processedCounter / totalToProcess;
               percent$.next(percent);
               this.processedFilesNames.push(item.name);
-            })
+            }),
           );
         }
       });
@@ -678,20 +863,25 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
     // Create batches of items to process in chunks
     const chunkedObservables = Array.from(
-      {length: Math.ceil(allItems.length / CHUNK_SIZE)},
-      (_, i) => processChunk(allItems.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE))
+      { length: Math.ceil(allItems.length / CHUNK_SIZE) },
+      (_, i) =>
+        processChunk(allItems.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)),
     );
 
     const finalResult$ = from(chunkedObservables).pipe(
-      concatMap(chunkObservable => chunkObservable),
+      concatMap((chunkObservable) => chunkObservable),
       last(),
       map(() => true),
       tap(() => {
         percent$.next(1);
         percent$.complete();
-        this.filesService.setFiles(this.files.filter(file => this.processedFilesNames.indexOf(file.name) === -1));
+        this.filesService.setFiles(
+          this.files.filter(
+            (file) => this.processedFilesNames.indexOf(file.name) === -1,
+          ),
+        );
         this.toProcess = [];
-      })
+      }),
     );
 
     return [anyToProcess, finalResult$, percent$];
@@ -706,7 +896,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-      reader.onerror = () => reject(new Error(`Error reading file ${file.name}`));
+      reader.onerror = () =>
+        reject(new Error(`Error reading file ${file.name}`));
       reader.readAsArrayBuffer(file);
     });
   }
@@ -722,17 +913,24 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     if (this.percentSubscription) this.percentSubscription.unsubscribe();
     this.finishedSubscription = finished$.pipe(delay(500)).subscribe(() => {
       this.loading = false;
-    })
-    this.percentSubscription = percent$.subscribe(percent => {
+    });
+    this.percentSubscription = percent$.subscribe((percent) => {
       this.loadingPercent = percent;
-    })
+    });
   }
 
   /**
    * Downloads all mods in the availableMods list
    */
   downloadAll() {
-    const files = this.availableMods.map(mod => mod.versions.find(version => version.selected)!.files.find(f => f.primary)!).flat();
+    const files = this.availableMods
+      .map(
+        (mod) =>
+          mod.versions
+            .find((version) => version.selected)!
+            .files.find((f) => f.primary)!,
+      )
+      .flat();
     this.downloadMultiple(files);
   }
 
@@ -740,22 +938,32 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * Download all updated mods in the availableMods list
    */
   downloadUpdated() {
-    const updatedMods = this.availableMods.filter(mod =>
-      mod.versions.some(version => version.selected && version.versionStatus == VersionStatus.Updated)
+    const updatedMods = this.availableMods.filter((mod) =>
+      mod.versions.some(
+        (version) =>
+          version.selected && version.versionStatus == VersionStatus.Updated,
+      ),
     );
 
-    const files = updatedMods.map(mod =>
-      mod.versions.find(version => version.selected && version.versionStatus == VersionStatus.Updated)!.files.find(f => f.primary)!
+    const files = updatedMods.map(
+      (mod) =>
+        mod.versions
+          .find(
+            (version) =>
+              version.selected &&
+              version.versionStatus == VersionStatus.Updated,
+          )!
+          .files.find((f) => f.primary)!,
     );
 
     if (files.length == 0) {
       Swal.fire({
         position: 'top-end',
         icon: 'info',
-        title: "No updated mods",
+        title: 'No updated mods',
         showConfirmButton: false,
         timer: 2500,
-        backdrop: `rgba(0, 0, 0, 0.0)`
+        backdrop: `rgba(0, 0, 0, 0.0)`,
       });
       return;
     }
@@ -766,11 +974,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * Downloads multiple files from a remote url
    * If there are more than 3 files, it will create a zip file with all the mods
    */
-  async downloadMultiple(files: { filename: string, url: string }[]) {
+  async downloadMultiple(files: { filename: string; url: string }[]) {
     if (files.length <= 3) {
       for (let file of files) window.open(file.url);
     } else {
-      const failedFiles: typeof files = []
+      const failedFiles: typeof files = [];
       Swal.fire({
         title: 'Downloading...',
         html: 'Progress: <b>0%</b>',
@@ -784,40 +992,53 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           let completed = 0;
           let total = files.length;
 
-          let promises = files.map(file =>
-            fetch(file.url).then(async r => {
-              zip.file(file.filename, await r.blob());
-              completed++;
-              Swal.update({html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`});
-              Swal.showLoading()
-            }).catch(async () => {
-              completed++;
-              console.error(`Error downloading file ${file.filename}. Retrying with Vercel function.`);
-              try {
-                const response = await fetch(`/api/proxy-file?url=${encodeURIComponent(file.url)}`);
-                if (!response.ok) {
-                  throw new Error();
+          let promises = files.map((file) =>
+            fetch(file.url)
+              .then(async (r) => {
+                zip.file(file.filename, await r.blob());
+                completed++;
+                Swal.update({
+                  html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`,
+                });
+                Swal.showLoading();
+              })
+              .catch(async () => {
+                completed++;
+                console.error(
+                  `Error downloading file ${file.filename}. Retrying with Vercel function.`,
+                );
+                try {
+                  const response = await fetch(
+                    `/api/proxy-file?url=${encodeURIComponent(file.url)}`,
+                  );
+                  if (!response.ok) {
+                    throw new Error();
+                  }
+                  zip.file(file.filename, await response.blob());
+                } catch {
+                  console.error(
+                    `Error downloading file ${file.filename} with Vercel function.`,
+                  );
+                  failedFiles.push(file);
                 }
-                zip.file(file.filename, await response.blob());
-              } catch {
-                console.error(`Error downloading file ${file.filename} with Vercel function.`);
-                failedFiles.push(file);
-              }
-            })
+              }),
           );
 
           await Promise.all(promises);
 
-          Swal.update({title: 'Creating ZIP...', html: 'Please wait...'});
+          Swal.update({ title: 'Creating ZIP...', html: 'Please wait...' });
           Swal.showLoading();
 
-          const zipBlob = await zip.generateAsync({type: 'blob'});
+          const zipBlob = await zip.generateAsync({ type: 'blob' });
           saveAs(zipBlob, 'mods.zip');
           Swal.close();
 
           if (failedFiles.length > 0) {
             const failedListHTML = failedFiles
-              .map(f => `<li><a href="${f.url}" target="_blank">${f.filename}</a></li>`)
+              .map(
+                (f) =>
+                  `<li><a href="${f.url}" target="_blank">${f.filename}</a></li>`,
+              )
               .join('');
 
             await Swal.fire({
@@ -843,9 +1064,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                 }
               },
               showCancelButton: true,
-            })
+            });
           }
-        }
+        },
       });
     }
   }
@@ -855,21 +1076,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    */
   linkAll() {
     for (let version of this.availableMods) {
-      window.open(`https://modrinth.com/mod/${version.project.slug}`)
+      window.open(`https://modrinth.com/mod/${version.project.slug}`);
     }
   }
 
-  View = View;  // Expose the View enum to the template
+  View = View; // Expose the View enum to the template
 }
 
 export interface ExtendedVersion extends ModrinthVersion {
-  versionStatus: VersionStatus;  // Whether the version is updated, installed or outdated
-  selected: boolean;  // Whether the version was selected by the user
+  versionStatus: VersionStatus; // Whether the version is updated, installed or outdated
+  selected: boolean; // Whether the version was selected by the user
 }
 
 export enum VersionStatus {
   Updated,
   Installed,
   Outdated,
-  Unspecified
+  Unspecified,
 }

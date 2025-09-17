@@ -1,23 +1,27 @@
 import {
   Observable,
   of,
-  MonoTypeOperatorFunction, defer, catchError, timer, mergeMap, throwError, ObservableInput,
+  MonoTypeOperatorFunction,
+  defer,
+  catchError,
+  timer,
+  mergeMap,
+  throwError,
+  ObservableInput,
 } from 'rxjs';
 
-import {RateLimitedApi} from "./RateLimitedApi";
-
+import { RateLimitedApi } from './RateLimitedApi';
 
 // ===== BASE API PROVIDER =====
 export abstract class BaseApiProvider extends RateLimitedApi {
   protected abstract override apiName: string;
-
 
   /**
    * Checks if the given object is an annotated error
    * @param object The object to check
    */
   public isAnnotatedError(object: any): object is AnnotatedError {
-    return object && !!((object as AnnotatedError).error);
+    return object && !!(object as AnnotatedError).error;
   }
 
   /**
@@ -45,7 +49,7 @@ export abstract class BaseApiProvider extends RateLimitedApi {
    */
   protected createRetryStrategy<T>(
     maxRetries: number = 3,
-    delayMs: number = 1000
+    delayMs: number = 1000,
   ): MonoTypeOperatorFunction<T> {
     return (source: Observable<T>): Observable<T> => {
       return defer(() => {
@@ -53,9 +57,11 @@ export abstract class BaseApiProvider extends RateLimitedApi {
 
         const handleError = (error: any): ObservableInput<T> => {
           if (this.isRetryableError(error) && attempt++ < maxRetries) {
-            console.log(`Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms`);
+            console.log(
+              `Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms`,
+            );
             return timer(delayMs).pipe(
-              mergeMap(() => source.pipe(catchError(handleError)))
+              mergeMap(() => source.pipe(catchError(handleError))),
             );
           } else {
             console.error(`Max retries (${maxRetries}) exceeded`);

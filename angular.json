@@ -16,9 +16,7 @@
             "outputPath": "dist/angular-mod-updater",
             "index": "src/index.html",
             "main": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
@@ -27,12 +25,8 @@
               "src/sitemap.xml",
               "src/robots.txt"
             ],
-            "styles": [
-              "src/styles.scss"
-            ],
-            "scripts": [
-              "node_modules/marked/marked.min.js"
-            ],
+            "styles": ["src/styles.scss"],
+            "scripts": ["node_modules/marked/marked.min.js"],
             "serviceWorker": true,
             "ngswConfigPath": "ngsw-config.json"
           },
@@ -84,19 +78,14 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "assets": [
               "src/favicon.ico",
               "src/assets",
               "src/manifest.webmanifest"
             ],
-            "styles": [
-              "src/styles.scss"
-            ],
+            "styles": ["src/styles.scss"],
             "scripts": []
           }
         }
