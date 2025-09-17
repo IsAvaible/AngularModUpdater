@@ -83,47 +83,21 @@
           </div>
         </div>
         @if (primaryMods.length > 0) {
-          <div
-            [class]="
-              availableModsView === View.List
-                ? 'flex flex-col max-w-7xl space-y-4 rounded-md justify-around'
-                : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 justify-between gap-y-4'
-            "
-          >
-            @for (
-              mod of primaryMods | orderBy: order : false : true;
-              track mod
-            ) {
-              <app-mod-card
-                [versions]="mod.versions"
-                [project]="mod.project"
-                [view]="availableModsView"
-              />
-            }
-          </div>
+          <app-mod-list
+            [mods]="primaryMods"
+            [view]="availableModsView"
+            [order]="order"
+          />
         }
         @if (dependencyMods.length > 0) {
           <p class="text-lg font-bold dark:text-slate-100 pt-4">
             Required Dependencies
           </p>
-          <div
-            [class]="
-              availableModsView === View.List
-                ? 'flex flex-col max-w-7xl space-y-4 rounded-md justify-around'
-                : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 justify-between gap-y-4'
-            "
-          >
-            @for (
-              mod of dependencyMods | orderBy: order : false : true;
-              track mod
-            ) {
-              <app-mod-card
-                [versions]="mod.versions"
-                [project]="mod.project"
-                [view]="availableModsView"
-              />
-            }
-          </div>
+          <app-mod-list
+            [mods]="dependencyMods"
+            [view]="availableModsView"
+            [order]="order"
+          />
         }
         <div
           class="flex justify-between bg-white rounded-lg px-4 py-2 dark:bg-slate-900 dark:text-slate-300"
@@ -176,75 +150,25 @@
       </section>
     }
     @if (unavailableMods.length > 0) {
-      <section>
-        <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">
-          Mods which have no releases for the selected version
-        </p>
-        <div
-          class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white ring-yellow-100 dark:ring-yellow-300 gap-y-2 p-2 rounded-lg justify-between items-center"
-        >
-          @for (
-            mod of unavailableMods | orderBy: "project.title" : false : true;
-            track mod
-          ) {
-            <a
-              href="{{ mod.project.project_url }}"
-              target="_blank"
-              referrerpolicy="no-referrer"
-              class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2"
-            >
-              {{ mod.project.title }}
-            </a>
-          }
-        </div>
-      </section>
+      <app-mod-info-section
+        [title]="'Mods which have no releases for the selected version'"
+        [mods]="unavailableMods"
+        [type]="'warning'"
+      />
     }
     @if (invalidLoaderMods.length > 0) {
-      <section>
-        <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">
-          Mods which are not available for the selected mod-loader
-        </p>
-        <div
-          class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white ring-yellow-100 dark:ring-yellow-300 gap-y-2 p-2 rounded-lg justify-between items-center"
-        >
-          @for (
-            mod of invalidLoaderMods | orderBy: "project.title" : false : true;
-            track mod
-          ) {
-            <a
-              href="{{ mod.project.project_url }}"
-              target="_blank"
-              referrerpolicy="no-referrer"
-              class="text-sm font-medium text-gray-700 bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300 px-2 py-1 rounded-lg mr-2"
-            >
-              {{ mod.project.title }}
-            </a>
-          }
-        </div>
-      </section>
+      <app-mod-info-section
+        [title]="'Mods which are not available for the selected mod-loader'"
+        [mods]="invalidLoaderMods"
+        [type]="'warning'"
+      />
     }
     @if (unresolvedMods.length > 0) {
-      <section>
-        <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">
-          Mods that the site was not able to fetch
-        </p>
-        <div
-          class="w-full flex flex-row flex-wrap ring-2 bg-white dark:bg-slate-800 ring-red-100 dark:ring-red-400 p-2 gap-y-2 rounded-lg justify-between items-center"
-        >
-          @for (mod of unresolvedMods | orderBy; track mod) {
-            <p
-              class="text-sm font-medium text-gray-700 bg-red-100 dark:bg-red-300 px-2 py-1 rounded-lg mr-2"
-            >
-              {{ mod.file.name }} -
-              {{
-                mod.annotation
-                  ? mod.annotation.error.status
-                  : "file read failed"
-              }}
-            </p>
-          }
-        </div>
-      </section>
+      <app-mod-info-section
+        [title]="'Mods that the site was not able to fetch'"
+        [mods]="unresolvedMods"
+        [type]="'error'"
+      />
     }
   </div>
 </div>

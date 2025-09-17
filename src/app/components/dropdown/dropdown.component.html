@@ -1,0 +1,58 @@
+<div class="relative inline-block text-left">
+  <div class="flex gap-x-3 items-center">
+    <p class="text-lg">{{ label }}:</p>
+    <button
+      #button
+      (click)="onClick()"
+      type="button"
+      class="inline-flex w-24 justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 dark:text-slate-200 dark:bg-slate-900 dark:ring-slate-400 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:hover:bg-slate-900 dark:hover:ring-slate-200"
+      id="menu-button"
+      aria-expanded="true"
+      aria-haspopup="true"
+    >
+      {{ selectedItem }}
+      <svg
+        class="-mr-1 h-5 w-5 text-gray-400 dark:text-slate-300"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </button>
+  </div>
+
+  @if (showDropdown) {
+    <div
+      #dropdown
+      [@openClose]=""
+      class="absolute right-0 w-24 flex flex-col z-50 mt-2 origin-top-right rounded-md bg-white dark:bg-slate-800 dark:ring-slate-300 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none max-h-44 overflow-y-auto"
+      role="menu"
+      aria-orientation="vertical"
+      aria-labelledby="menu-button"
+      tabindex="-1"
+    >
+      @for (item of items; track item) {
+        <div role="none">
+          <button
+            (click)="onSelectItem(item)"
+            class="w-full block py-2 text-sm text-center"
+            [ngClass]="
+              item == this.selectedItem
+                ? 'bg-gray-100 text-gray-900 dark:text-slate-100 dark:bg-slate-900'
+                : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-900'
+            "
+            role="menuitem"
+            id="menu-item-0"
+          >
+            {{ item }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

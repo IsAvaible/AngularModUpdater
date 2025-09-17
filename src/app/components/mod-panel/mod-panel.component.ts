@@ -49,6 +49,23 @@ export enum SortOption {
   Type = 'Project Type'
 }
 
+export interface Mod {
+  versions: ExtendedVersion[];
+  project: ModrinthProject;
+  isDependency: boolean;
+}
+export interface UnavailableMod {
+  file: File;
+  project_url: string;
+  project: ModrinthProject;
+}
+
+export interface UnresolvedMod {
+  file: File;
+  slug: string | undefined;
+  annotation: AnnotatedError | null;
+}
+
 @Component({
   selector: 'app-mod-panel',
   templateUrl: './mod-panel.component.html',
@@ -56,31 +73,15 @@ export enum SortOption {
   standalone: false
 })
 export class ModPanelComponent implements OnInit, OnDestroy {
-  availableMods: {
-    versions: ExtendedVersion[];
-    project: ModrinthProject;
-    isDependency: boolean;
-  }[] = []; // Stores all mods that are available for the selected mc version
-  unavailableMods: {
-    file: File;
-    project_url: string;
-    project: ModrinthProject;
-  }[] = []; // Stores all mods that are not available for the selected mc version
-  invalidLoaderMods: {
-    file: File;
-    project_url: string;
-    project: ModrinthProject;
-  }[] = []; // Stores all mods that are not available for the selected loader
-  unresolvedMods: {
-    file: File;
-    slug: string | undefined;
-    annotation: AnnotatedError | null;
-  }[] = []; // Stores all mods that could not be resolved (network error, etc.)
+  availableMods: Mod[] = []; // Stores all mods that are available for the selected mc version
+  unavailableMods: UnavailableMod[] = []; // Stores all mods that are not available for the selected mc version
+  invalidLoaderMods: UnavailableMod[] = []; // Stores all mods that are not available for the selected loader
+  unresolvedMods: UnresolvedMod[] = []; // Stores all mods that could not be resolved (network error, etc.)
 
   loading = false; // Whether the site is currently processing mods
   loadingPercent: number = 1; //
 
-  order: any[] = ['versions[0].versionStatus', 'project.title']; // Stores the order of the available mods list
+  order: string[] = ['versions[0].versionStatus', 'project.title']; // Stores the order of the available mods list
   searchTerm = '';
   sortOption: SortOption = SortOption.Default;
   readonly sortOptions = Object.values(SortOption);

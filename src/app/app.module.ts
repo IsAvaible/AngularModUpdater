@@ -29,6 +29,9 @@ import { MarkdownModule } from 'ngx-markdown';
 import { ModStatusLabelComponent } from './components/mod-card/mod-status-label/mod-status-label.component';
 import { ProjectTypeLabelComponent } from './components/mod-card/project-type-label/project-type-label.component';
 import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator.component';
+import { DropdownComponent } from './components/dropdown/dropdown.component';
+import { ModListComponent } from './components/mod-list/mod-list.component';
+import { ModInfoSectionComponent } from './components/mod-info-section/mod-info-section.component';
 
 @NgModule({
   declarations: [
@@ -48,7 +51,10 @@ import { LoadingIndicatorComponent } from './components/loading-indicator/loadin
     InfoSectionComponent,
     ModStatusLabelComponent,
     ProjectTypeLabelComponent,
-    LoadingIndicatorComponent
+    LoadingIndicatorComponent,
+    DropdownComponent,
+    ModListComponent,
+    ModInfoSectionComponent
   ],
   bootstrap: [AppComponent],
   imports: [

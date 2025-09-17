@@ -1,0 +1,42 @@
+<section>
+  <p class="text-lg font-bold mt-4 mb-2 dark:text-slate-100">{{ title }}</p>
+  <div
+    class="w-full flex flex-row flex-wrap ring-2 dark:bg-slate-800 bg-white gap-y-2 p-2 rounded-lg justify-between items-center"
+    [ngClass]="{
+      'ring-yellow-100 dark:ring-yellow-300': type === 'warning',
+      'ring-red-100 dark:ring-red-400': type === 'error'
+    }"
+  >
+    @for (mod of mods; track mod) {
+      @if (isUnresolvedMod(mod)) {
+        <p
+          class="text-sm font-medium text-gray-700 px-2 py-1 rounded-lg mr-2"
+          [ngClass]="{
+            'bg-yellow-100 dark:bg-yellow-300': type === 'warning',
+            'bg-red-100 dark:bg-red-300': type === 'error'
+          }"
+        >
+          {{ mod.file.name }} -
+          {{
+            mod.annotation ? mod.annotation.error.status : "file read failed"
+          }}
+        </p>
+      } @else {
+        <a
+          [href]="mod.project.project_url"
+          target="_blank"
+          referrerpolicy="no-referrer"
+          class="text-sm font-medium text-gray-700 px-2 py-1 rounded-lg mr-2"
+          [ngClass]="{
+            'bg-yellow-100 dark:bg-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-300':
+              type === 'warning',
+            'bg-red-100 dark:bg-red-300 hover:bg-red-200 dark:hover:bg-red-300':
+              type === 'error'
+          }"
+        >
+          {{ mod.project.title }}
+        </a>
+      }
+    }
+  </div>
+</section>
