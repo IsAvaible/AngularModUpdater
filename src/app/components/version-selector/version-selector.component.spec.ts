@@ -8,7 +8,7 @@ describe('VersionSelectorComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [VersionSelectorComponent],
+      declarations: [VersionSelectorComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VersionSelectorComponent);

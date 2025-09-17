@@ -8,7 +8,7 @@ describe('ModPanelComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ModPanelComponent],
+      declarations: [ModPanelComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ModPanelComponent);

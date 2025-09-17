@@ -9,19 +9,19 @@
       id="menu-button"
       aria-expanded="true"
       aria-haspopup="true"
-      >
+    >
       {{ version?.version }}
       <svg
         class="-mr-1 h-5 w-5 text-gray-400"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"
-        >
+      >
         <path
           fill-rule="evenodd"
           d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
           clip-rule="evenodd"
-          />
+        />
       </svg>
     </button>
   </div>
@@ -35,21 +35,21 @@
       aria-orientation="vertical"
       aria-labelledby="menu-button"
       tabindex="-1"
-      >
+    >
       @for (version of filteredVersions; track version) {
         <div role="none">
           <!-- Active: "bg-gray-100 text-gray-900", Not Active: "text-gray-700" -->
           <button
             (click)="onSelect(version)"
             class="w-full block py-2 text-sm text-center"
-        [ngClass]="
-          version.selected
-            ? 'bg-gray-100 text-gray-900 dark:text-slate-100 dark:bg-slate-900'
-            : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-900'
-        "
+            [ngClass]="
+              version.selected
+                ? 'bg-gray-100 text-gray-900 dark:text-slate-100 dark:bg-slate-900'
+                : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-900'
+            "
             role="menuitem"
             id="menu-item-0"
-            >
+          >
             {{ version.version }}
           </button>
         </div>

@@ -8,7 +8,7 @@ describe('ModStatusLabelComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ProjectTypeLabelComponent],
+      declarations: [ProjectTypeLabelComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectTypeLabelComponent);

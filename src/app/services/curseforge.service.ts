@@ -6,7 +6,7 @@ import { Curseforge } from '../libraries/curseforge/curseforge';
  * (Adheres to the Singleton pattern)
  */
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class CurseforgeService extends Curseforge {
   constructor() {

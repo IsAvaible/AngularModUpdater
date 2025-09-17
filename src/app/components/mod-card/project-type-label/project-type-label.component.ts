@@ -3,10 +3,10 @@ import { View } from '../mod-card.component';
 import { ProjectType } from '../../../libraries/modrinth/types.modrinth';
 
 @Component({
-    selector: 'app-project-type-label',
-    templateUrl: './project-type-label.component.html',
-    styleUrls: ['./project-type-label.component.css'],
-    standalone: false
+  selector: 'app-project-type-label',
+  templateUrl: './project-type-label.component.html',
+  styleUrls: ['./project-type-label.component.css'],
+  standalone: false
 })
 export class ProjectTypeLabelComponent {
   @Input() type!: ProjectType;

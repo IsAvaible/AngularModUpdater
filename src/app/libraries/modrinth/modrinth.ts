@@ -4,7 +4,7 @@ import {
   ModrinthVersion,
   ProjectType,
   SearchProjectsParams,
-  SearchResult,
+  SearchResult
 } from './types.modrinth';
 import {
   bufferTime,
@@ -19,7 +19,7 @@ import {
   Subject,
   switchMap,
   take,
-  timeout,
+  timeout
 } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
@@ -37,7 +37,7 @@ export class Modrinth extends BaseApiProvider {
     // Headers for the requests
     'Access-Control-Allow-Origin': this.modrinthAPIUrl,
     'Content-Type': 'application/json',
-    Accept: 'application/json',
+    Accept: 'application/json'
   };
 
   public static get Instance() {
@@ -50,7 +50,7 @@ export class Modrinth extends BaseApiProvider {
     return {
       limit: 300,
       remaining: 300,
-      resetTime: new Date(Date.now() + 60 * 1000), // one minute reset time
+      resetTime: new Date(Date.now() + 60 * 1000) // one minute reset time
     };
   }
 
@@ -60,14 +60,14 @@ export class Modrinth extends BaseApiProvider {
   private getVersionBufferResolver = this.getVersionBuffer.pipe(
     bufferTime(this.bufferDelay),
     switchMap((hashes) => this.getVersionsFromHashes(hashes)),
-    share(),
+    share()
   );
 
   private getProjectBuffer = new Subject<string>();
   private getProjectBufferResolver = this.getProjectBuffer.pipe(
     bufferTime(this.bufferDelay),
     switchMap((ids) => this.getProjects(ids)),
-    share(),
+    share()
   );
 
   protected setupBuffering() {
@@ -105,7 +105,7 @@ export class Modrinth extends BaseApiProvider {
   }
 
   public getProjects(
-    ids: string[],
+    ids: string[]
   ): Observable<{ [hash: string]: ModrinthProject | AnnotatedError }> {
     if (ids.length == 0) {
       return of({});
@@ -138,8 +138,8 @@ export class Modrinth extends BaseApiProvider {
         catchError(
           this.createErrorHandler<{
             [hash: string]: ModrinthProject | AnnotatedError;
-          }>(),
-        ),
+          }>()
+        )
       );
   }
 
@@ -154,9 +154,9 @@ export class Modrinth extends BaseApiProvider {
       filter((projects) => projects[id] != undefined),
       map((projects) => projects[id]),
       defaultIfEmpty({
-        error: { message: 'Project not found', status: 404 },
+        error: { message: 'Project not found', status: 404 }
       } as AnnotatedError),
-      take(1),
+      take(1)
     );
   }
 
@@ -169,7 +169,7 @@ export class Modrinth extends BaseApiProvider {
   public getVersionsFromId(
     id: string,
     version: string,
-    loaders: string[],
+    loaders: string[]
   ): Observable<ModrinthVersion[] | AnnotatedError> {
     const url =
       `${this.modrinthAPIUrl}/project/${id}/version?game_versions=["${version}"]` +
@@ -189,8 +189,8 @@ export class Modrinth extends BaseApiProvider {
           return this.parseVersions(resp.body!);
         }),
         catchError(
-          this.createErrorHandler<ModrinthVersion[] | AnnotatedError>(),
-        ),
+          this.createErrorHandler<ModrinthVersion[] | AnnotatedError>()
+        )
       );
   }
 
@@ -199,7 +199,7 @@ export class Modrinth extends BaseApiProvider {
    * @param hashes The hashes of the versions
    */
   public getVersionsFromHashes(
-    hashes: string[],
+    hashes: string[]
   ): Observable<{ [hash: string]: ModrinthVersion | AnnotatedError }> {
     if (hashes.length == 0) {
       return of({});
@@ -212,9 +212,9 @@ export class Modrinth extends BaseApiProvider {
         {
           headers: this.headers,
           hashes: hashes,
-          algorithm: 'sha1',
+          algorithm: 'sha1'
         },
-        { observe: 'response' },
+        { observe: 'response' }
       )
       .pipe(
         timeout(10000),
@@ -226,14 +226,14 @@ export class Modrinth extends BaseApiProvider {
           for (const hash of hashes) {
             if (versions[hash] instanceof Object) {
               versions[hash] = this.parseVersion(
-                versions[hash] as ModrinthVersion,
+                versions[hash] as ModrinthVersion
               );
             } else {
               versions[hash] = {
                 error: versions[hash] ?? {
                   message: 'Unknown error',
-                  status: 404,
-                },
+                  status: 404
+                }
               } as unknown as AnnotatedError;
             }
           }
@@ -242,8 +242,8 @@ export class Modrinth extends BaseApiProvider {
         catchError(
           this.createErrorHandler<{
             [hash: string]: ModrinthVersion | AnnotatedError;
-          }>(),
-        ),
+          }>()
+        )
       );
   }
 
@@ -252,14 +252,14 @@ export class Modrinth extends BaseApiProvider {
    * @param hash The sha-1 hash of the binary representation of the mod file
    */
   public getVersionFromHash(
-    hash: string,
+    hash: string
   ): Observable<ModrinthVersion | AnnotatedError> {
     this.getVersionBuffer.next(hash);
 
     return this.getVersionBufferResolver.pipe(
       filter((versions) => versions[hash] != undefined),
       map((versions) => versions[hash]),
-      take(1),
+      take(1)
     );
   }
 
@@ -268,14 +268,14 @@ export class Modrinth extends BaseApiProvider {
    * @param buffer The binary representation of the mod file
    */
   public getVersionFromBuffer(
-    buffer: ArrayBuffer,
+    buffer: ArrayBuffer
   ): Observable<ModrinthVersion | AnnotatedError> {
     const fileHash = sha1(buffer);
     return this.getVersionFromHash(fileHash);
   }
 
   public searchProject(
-    params: SearchProjectsParams,
+    params: SearchProjectsParams
   ): Observable<SearchResult | AnnotatedError> {
     let httpParams = new HttpParams();
 
@@ -312,7 +312,7 @@ export class Modrinth extends BaseApiProvider {
     // Make the HTTP GET request with the constructed parameters
     return this.http
       .get<SearchResult>(`${this.modrinthAPIUrl}/search`, {
-        params: httpParams,
+        params: httpParams
       })
       .pipe(
         timeout(10000),
@@ -320,13 +320,13 @@ export class Modrinth extends BaseApiProvider {
         catchError((error) => {
           // Wrap the error in an AnnotatedError and return it
           return of({ error } as AnnotatedError);
-        }),
+        })
       );
   }
 
   public async parseMrpack(
     buffer: ArrayBuffer,
-    isJson: boolean = false,
+    isJson: boolean = false
   ): Promise<Modpack | AnnotatedError> {
     let json: any;
     if (!isJson) {
@@ -339,8 +339,8 @@ export class Modrinth extends BaseApiProvider {
         return {
           error: {
             message: 'modrinth.index.json not found in the archive',
-            status: 404,
-          },
+            status: 404
+          }
         };
       }
 
@@ -362,22 +362,22 @@ export class Modrinth extends BaseApiProvider {
         path: file.path,
         hashes: file.hashes,
         downloads: file.downloads,
-        env: file.env,
-      })),
+        env: file.env
+      }))
     };
 
     return modpack;
   }
 
   public async searchMrpackProjectId(
-    modpack: Modpack,
+    modpack: Modpack
   ): Promise<string | AnnotatedError> {
     // Search for the project name in Modrinth to get the project id
     const searchResult = await firstValueFrom(
       this.searchProject({
         query: modpack.name,
-        project_type: ProjectType.MODPACK,
-      }),
+        project_type: ProjectType.MODPACK
+      })
     );
 
     // Check if the search result is an error
@@ -399,8 +399,8 @@ export class Modrinth extends BaseApiProvider {
     return {
       error: {
         message: 'No project id found in the dependencies',
-        status: 404,
-      },
+        status: 404
+      }
     };
   }
 }

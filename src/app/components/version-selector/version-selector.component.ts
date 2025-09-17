@@ -4,32 +4,32 @@ import {
   HostListener,
   OnDestroy,
   OnInit,
-  ViewChild,
+  ViewChild
 } from '@angular/core';
 import { trigger, style, animate, transition } from '@angular/animations';
 import { Subscription } from 'rxjs';
 import {
   VersionsService,
-  MinecraftVersion,
+  MinecraftVersion
 } from '../../services/versions.service';
 
 @Component({
-    selector: 'app-version-selector',
-    templateUrl: './version-selector.component.html',
-    styleUrls: ['./version-selector.component.css'],
-    animations: [
-        trigger('openClose', [
-            transition(':enter', [
-                style({ opacity: 0, transform: 'scale(0.95)' }),
-                animate('100ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
-            ]),
-            transition(':leave', [
-                style({ opacity: 1, transform: 'scale(1)' }),
-                animate('75ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' })),
-            ]),
-        ]),
-    ],
-    standalone: false
+  selector: 'app-version-selector',
+  templateUrl: './version-selector.component.html',
+  styleUrls: ['./version-selector.component.css'],
+  animations: [
+    trigger('openClose', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.95)' }),
+        animate('100ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))
+      ]),
+      transition(':leave', [
+        style({ opacity: 1, transform: 'scale(1)' }),
+        animate('75ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))
+      ])
+    ])
+  ],
+  standalone: false
 })
 export class VersionSelectorComponent implements OnInit, OnDestroy {
   versions!: MinecraftVersion[]; // Stores all minecraft versions
@@ -46,7 +46,7 @@ export class VersionSelectorComponent implements OnInit, OnDestroy {
     this.subscription = this.versionsService.versions.subscribe((versions) => {
       this.versions = versions;
       this.filteredVersions = this.versions.filter(
-        (v) => this.displayTypes.indexOf(v.type) != -1,
+        (v) => this.displayTypes.indexOf(v.type) != -1
       );
     });
   }

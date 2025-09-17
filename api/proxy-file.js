@@ -6,7 +6,7 @@ export async function GET(request) {
 
     if (!fileUrl) {
       return new Response("Missing file URL parameter", {
-        status: 400,
+        status: 400
       });
     }
 
@@ -16,7 +16,7 @@ export async function GET(request) {
       parsedUrl = new URL(fileUrl);
     } catch {
       return new Response("Invalid URL format", {
-        status: 400,
+        status: 400
       });
     }
 
@@ -25,7 +25,7 @@ export async function GET(request) {
 
     if (!response.ok) {
       return new Response(`Failed to fetch file: ${response.statusText}`, {
-        status: response.status,
+        status: response.status
       });
     }
 
@@ -35,7 +35,7 @@ export async function GET(request) {
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(
-        /filename[^;=\n]*=(['"]*)(.*?)\1/,
+        /filename[^;=\n]*=(['"]*)(.*?)\1/
       );
       if (filenameMatch && filenameMatch[2]) {
         filename = filenameMatch[2];
@@ -60,7 +60,7 @@ export async function GET(request) {
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "no-cache, no-store, must-revalidate",
       Pragma: "no-cache",
-      Expires: "0",
+      Expires: "0"
     });
 
     // Add content length if available
@@ -71,12 +71,12 @@ export async function GET(request) {
     // Stream the response body
     return new Response(response.body, {
       status: 200,
-      headers,
+      headers
     });
   } catch (error) {
     console.error("Error streaming file:", error);
     return new Response("Internal server error", {
-      status: 500,
+      status: 500
     });
   }
 }

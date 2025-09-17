@@ -8,7 +8,7 @@ import { LocalStorageBehaviorSubject } from '../misc/LocalStorageBehaviorSubject
 export class LoaderService {
   private loader$ = new LocalStorageBehaviorSubject<Loader>(
     'mod-loader',
-    Loader.fabric,
+    Loader.fabric
   );
   loader = this.loader$.asObservable();
 
@@ -23,5 +23,5 @@ export enum Loader {
   fabric = 'Fabric',
   quilt = 'Quilt',
   forge = 'Forge',
-  neoforge = 'NeoForge',
+  neoforge = 'NeoForge'
 }

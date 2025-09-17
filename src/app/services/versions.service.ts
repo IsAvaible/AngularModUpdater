@@ -14,7 +14,7 @@ export class VersionsService {
   // Stores the selected version in local storage
   private selectedVersion$ = new LocalStorageBehaviorSubject<string | null>(
     'mc-version',
-    null,
+    null
   );
 
   constructor(private http: HttpClient) {
@@ -28,9 +28,9 @@ export class VersionsService {
       {
         version: this.selectedVersion$.value ?? defaultVersion,
         selected: true,
-        type: 'release',
+        type: 'release'
       },
-      { version: 'Loading...', selected: false, type: 'release' },
+      { version: 'Loading...', selected: false, type: 'release' }
     ]);
     // Get the list of all minecraft versions from Mojang
     this.http
@@ -43,7 +43,7 @@ export class VersionsService {
             url: string;
             time: string;
             releaseTime: string;
-          },
+          }
         ];
       }>('https://launchermeta.mojang.com/mc/game/version_manifest.json')
       .subscribe((data) => {
@@ -53,8 +53,8 @@ export class VersionsService {
             version: v.id,
             selected:
               v.id == (this.selectedVersion$.value ?? data.latest.release),
-            type: v.type,
-          })),
+            type: v.type
+          }))
         );
       });
   }
@@ -62,7 +62,7 @@ export class VersionsService {
   setVersions(versions: MinecraftVersion[]) {
     this.versions$.next(versions);
     this.selectedVersion$.next(
-      versions.find((v) => v.selected)?.version ?? null,
+      versions.find((v) => v.selected)?.version ?? null
     );
   }
 }

@@ -27,12 +27,12 @@ export default function compute_fingerprint(buffer: Uint8Array): number {
       if (bitShiftCount === uint32_t(32)) {
         const mixedValue = uint32_t(currentWord * HASH_MULTIPLIER);
         const rotatedValue = uint32_t(
-          (mixedValue ^ (mixedValue >> uint32_t(24))) * HASH_MULTIPLIER,
+          (mixedValue ^ (mixedValue >> uint32_t(24))) * HASH_MULTIPLIER
         );
 
         // Update the hash accumulator with the new mixed value
         hashAccumulator = uint32_t(
-          (hashAccumulator * HASH_MULTIPLIER) ^ rotatedValue,
+          (hashAccumulator * HASH_MULTIPLIER) ^ rotatedValue
         );
 
         // Reset the temporary variables for the next 32-bit block
@@ -45,16 +45,16 @@ export default function compute_fingerprint(buffer: Uint8Array): number {
   // If there are remaining bits after processing all bytes, incorporate them into the hash
   if (bitShiftCount > 0) {
     hashAccumulator = uint32_t(
-      (hashAccumulator ^ currentWord) * HASH_MULTIPLIER,
+      (hashAccumulator ^ currentWord) * HASH_MULTIPLIER
     );
   }
 
   // Finalize the hash by mixing and returning the resulting 32-bit integer
   const finalHashValue = uint32_t(
-    (hashAccumulator ^ (hashAccumulator >> uint32_t(13))) * HASH_MULTIPLIER,
+    (hashAccumulator ^ (hashAccumulator >> uint32_t(13))) * HASH_MULTIPLIER
   );
   return parseInt(
-    String(uint32_t(finalHashValue ^ (finalHashValue >> uint32_t(15)))),
+    String(uint32_t(finalHashValue ^ (finalHashValue >> uint32_t(15))))
   );
 
   /**

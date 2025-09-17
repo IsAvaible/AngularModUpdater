@@ -6,10 +6,10 @@ import { BehaviorSubject } from 'rxjs';
 export class LocalStorageBehaviorSubject<T> extends BehaviorSubject<T> {
   constructor(
     private storageKey: string,
-    defaultValue: T,
+    defaultValue: T
   ) {
     super(
-      LocalStorageBehaviorSubject.getInitialValue(storageKey, defaultValue),
+      LocalStorageBehaviorSubject.getInitialValue(storageKey, defaultValue)
     );
   }
 

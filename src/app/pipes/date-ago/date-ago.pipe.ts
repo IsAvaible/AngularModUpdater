@@ -4,9 +4,9 @@ import { Pipe, PipeTransform } from '@angular/core';
  * Pipe that converts a date to a string like "2 days ago"
  */
 @Pipe({
-    name: 'dateAgo',
-    pure: true,
-    standalone: false
+  name: 'dateAgo',
+  pure: true,
+  standalone: false
 })
 export class DateAgoPipe implements PipeTransform {
   transform(value: any, args?: any): any {
@@ -22,7 +22,7 @@ export class DateAgoPipe implements PipeTransform {
         day: 86400,
         hour: 3600,
         minute: 60,
-        second: 1,
+        second: 1
       };
       let counter;
       for (const i in intervals) {

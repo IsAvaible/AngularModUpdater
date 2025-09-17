@@ -6,7 +6,7 @@ import { Modrinth } from '../libraries/modrinth/modrinth';
  * (Adheres to the Singleton pattern)
  */
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class ModrinthService extends Modrinth {
   constructor() {

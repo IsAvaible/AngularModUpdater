@@ -3,7 +3,7 @@ import {
   GitHubProject,
   GitHubRelease,
   GitHubRepoConfig,
-  GitHubVersion,
+  GitHubVersion
 } from './types.github';
 import {
   catchError,
@@ -12,7 +12,7 @@ import {
   Observable,
   of,
   switchMap,
-  timeout,
+  timeout
 } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
@@ -26,7 +26,7 @@ export class GitHub extends BaseApiProvider {
   public githubAPIUrl = 'https://api.github.com';
   public headers = {
     Accept: 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   };
 
   private http = inject(HttpClient);
@@ -35,7 +35,7 @@ export class GitHub extends BaseApiProvider {
     return {
       limit: 60,
       remaining: 60,
-      resetTime: new Date(Date.now() + 60 * 60 * 1000), // one hour reset time
+      resetTime: new Date(Date.now() + 60 * 60 * 1000) // one hour reset time
     };
   }
 
@@ -53,13 +53,13 @@ export class GitHub extends BaseApiProvider {
       { modName: 'minihud', modrinthPage: 'UMxybHE8' },
       { modName: 'tweakeroo', modrinthPage: 't5wuYk45' },
       { modName: 'itemscroller', modrinthPage: 'JygyCSA4' },
-      { modName: 'servux', modrinthPage: 'zQhsx8KF' },
+      { modName: 'servux', modrinthPage: 'zQhsx8KF' }
     ].map(({ modName, modrinthPage }) => ({
       owner: 'sakura-ryoko',
       repo: modName,
       loader: Loader.fabric,
       pattern: new RegExp(`^${modName}.*?-.+?-.+?-sakura.\\d+?.jar$`, 'i'),
-      modrinthPage,
+      modrinthPage
     }));
 
     configs = configs.concat(sakuraRyokoConfigs);
@@ -78,7 +78,7 @@ export class GitHub extends BaseApiProvider {
    * Gets releases for a GitHub repository
    */
   public getReleases(
-    config: GitHubRepoConfig,
+    config: GitHubRepoConfig
   ): Observable<GitHubRelease[] | AnnotatedError> {
     const owner = config.owner;
     const repo = config.repo;
@@ -87,7 +87,7 @@ export class GitHub extends BaseApiProvider {
     return this.http
       .get<GitHubRelease[]>(url, {
         headers: this.headers,
-        observe: 'response',
+        observe: 'response'
       })
       .pipe(
         timeout(10000),
@@ -97,10 +97,10 @@ export class GitHub extends BaseApiProvider {
           return resp.body!.map((release) => ({
             ...release,
             created_at: release.created_at,
-            published_at: release.published_at,
+            published_at: release.published_at
           }));
         }),
-        catchError(this.createErrorHandler<GitHubRelease[] | AnnotatedError>()),
+        catchError(this.createErrorHandler<GitHubRelease[] | AnnotatedError>())
       );
   }
 
@@ -111,7 +111,7 @@ export class GitHub extends BaseApiProvider {
    */
   public findMatchingAsset(release: GitHubRelease, pattern: RegExp) {
     return release.assets.find(
-      (asset) => asset.name.endsWith('.jar') && pattern.test(asset.name),
+      (asset) => asset.name.endsWith('.jar') && pattern.test(asset.name)
     );
   }
 
@@ -126,10 +126,10 @@ export class GitHub extends BaseApiProvider {
     filename: string,
     loader: Loader,
     mcVersion: string,
-    modrinth: Modrinth,
+    modrinth: Modrinth
   ): Observable<GitHubModInfo | null> {
     const matchingConfig = GitHub.REPO_CONFIGS.find(
-      (config) => config.loader === loader && config.pattern.test(filename),
+      (config) => config.loader === loader && config.pattern.test(filename)
     );
 
     if (!matchingConfig) {
@@ -148,7 +148,7 @@ export class GitHub extends BaseApiProvider {
           .filter((release) => !release.draft && !release.prerelease)
           .filter((release) => release.name.includes(mcVersion))
           .filter((release) =>
-            this.findMatchingAsset(release, matchingConfig.pattern),
+            this.findMatchingAsset(release, matchingConfig.pattern)
           );
 
         if (validReleases.length === 0) {
@@ -166,23 +166,23 @@ export class GitHub extends BaseApiProvider {
               sum +
               release.assets.reduce(
                 (assetSum, asset) => assetSum + asset.download_count,
-                0,
+                0
               ),
-            0,
+            0
           ),
           updated: new Date(
             Math.max(
-              ...validReleases.map((r) => new Date(r.published_at).getTime()),
-            ),
+              ...validReleases.map((r) => new Date(r.published_at).getTime())
+            )
           ),
           versions: validReleases.map((r) => r.tag_name),
-          loaders: [matchingConfig.loader],
+          loaders: [matchingConfig.loader]
         };
 
         const versions: GitHubVersion[] = validReleases.map((release) => {
           const asset = this.findMatchingAsset(
             release,
-            matchingConfig.pattern,
+            matchingConfig.pattern
           )!;
           const versionName = release.name || release.tag_name;
 
@@ -197,19 +197,19 @@ export class GitHub extends BaseApiProvider {
                 url: asset.browser_download_url,
                 filename: asset.name,
                 primary: true,
-                size: asset.size,
-              },
+                size: asset.size
+              }
             ],
-            release_url: release.html_url,
+            release_url: release.html_url
           };
         });
 
         return {
           project,
           versions,
-          config: matchingConfig,
+          config: matchingConfig
         };
-      }),
+      })
     );
   }
 
@@ -217,14 +217,14 @@ export class GitHub extends BaseApiProvider {
 
   private async findGithubInfoFromModrinth(
     config: GitHubRepoConfig,
-    modrinth: Modrinth,
+    modrinth: Modrinth
   ) {
     const modrinthPage = config.modrinthPage;
     if (!modrinthPage || this.foundInfo.has(modrinthPage)) return;
     this.foundInfo.add(modrinthPage);
 
     const modrinthProject = await firstValueFrom(
-      modrinth.getProject(modrinthPage),
+      modrinth.getProject(modrinthPage)
     );
     if (modrinth.isAnnotatedError(modrinthProject)) return;
 

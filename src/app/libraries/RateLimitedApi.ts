@@ -50,12 +50,12 @@ export abstract class RateLimitedApi {
     const now = new Date();
     return Math.max(
       0,
-      Math.round((this._rateLimit.resetTime.getTime() - now.getTime()) / 1000),
+      Math.round((this._rateLimit.resetTime.getTime() - now.getTime()) / 1000)
     );
   }
   public getRateLimitSecondsUntilReset$ = interval(1000).pipe(
     startWith(this.getRateLimitSecondsUntilReset()),
-    map(() => this.getRateLimitSecondsUntilReset()),
+    map(() => this.getRateLimitSecondsUntilReset())
   );
 
   // ===== PROTECTED HELPERS =====
@@ -76,7 +76,7 @@ export abstract class RateLimitedApi {
       this._rateLimit = {
         limit,
         remaining,
-        resetTime: resetTime,
+        resetTime: resetTime
       };
       this._isClientSideRateLimit = false;
     }
@@ -94,15 +94,15 @@ export abstract class RateLimitedApi {
    */
   protected extractRateLimitHeader(
     headers: HttpHeaders | undefined,
-    type: 'limit' | 'remaining',
+    type: 'limit' | 'remaining'
   ): number | null;
   protected extractRateLimitHeader(
     headers: HttpHeaders | undefined,
-    type: 'reset',
+    type: 'reset'
   ): Date | null;
   protected extractRateLimitHeader(
     headers: HttpHeaders | undefined,
-    type: 'limit' | 'remaining' | 'reset',
+    type: 'limit' | 'remaining' | 'reset'
   ): number | Date | null {
     if (!headers) {
       return null;
@@ -161,7 +161,7 @@ export abstract class RateLimitedApi {
       return of({});
     }
     console.log(
-      `${this.apiName} rate limit reached. Wait for ${this.getRateLimitSecondsUntilReset()} seconds.`,
+      `${this.apiName} rate limit reached. Wait for ${this.getRateLimitSecondsUntilReset()} seconds.`
     );
 
     // Show user notification (you can customize this)
@@ -195,7 +195,7 @@ export abstract class RateLimitedApi {
         if (timerInterval) {
           clearInterval(timerInterval);
         }
-      },
+      }
     });
   }
 

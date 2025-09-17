@@ -6,7 +6,7 @@ import { Interoperability } from '../libraries/interop/interoperability';
  * (Adheres to the Singleton pattern)
  */
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class InteroperabilityService extends Interoperability {
   constructor() {

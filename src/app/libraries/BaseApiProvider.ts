@@ -7,7 +7,7 @@ import {
   timer,
   mergeMap,
   throwError,
-  ObservableInput,
+  ObservableInput
 } from 'rxjs';
 
 import { RateLimitedApi } from './RateLimitedApi';
@@ -49,7 +49,7 @@ export abstract class BaseApiProvider extends RateLimitedApi {
    */
   protected createRetryStrategy<T>(
     maxRetries: number = 3,
-    delayMs: number = 1000,
+    delayMs: number = 1000
   ): MonoTypeOperatorFunction<T> {
     return (source: Observable<T>): Observable<T> => {
       return defer(() => {
@@ -58,10 +58,10 @@ export abstract class BaseApiProvider extends RateLimitedApi {
         const handleError = (error: any): ObservableInput<T> => {
           if (this.isRetryableError(error) && attempt++ < maxRetries) {
             console.log(
-              `Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms`,
+              `Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms`
             );
             return timer(delayMs).pipe(
-              mergeMap(() => source.pipe(catchError(handleError))),
+              mergeMap(() => source.pipe(catchError(handleError)))
             );
           } else {
             console.error(`Max retries (${maxRetries}) exceeded`);

@@ -8,7 +8,7 @@ describe('LoaderSelectorComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LoaderSelectorComponent],
+      declarations: [LoaderSelectorComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(LoaderSelectorComponent);

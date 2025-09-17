@@ -3,7 +3,7 @@ import {
   CurseforgeMod,
   DependencyType,
   FileReleaseType,
-  ModLoaderType,
+  ModLoaderType
 } from '../curseforge/types.curseforge';
 import {
   ModrinthProject,
@@ -11,12 +11,12 @@ import {
   ProjectType,
   RequirementLevel,
   Status,
-  VersionType,
+  VersionType
 } from '../modrinth/types.modrinth';
 import {
   GitHubModInfo,
   GitHubProject,
-  GitHubVersion,
+  GitHubVersion
 } from '../github/types.github';
 import { Loader } from '../../services/loader.service';
 
@@ -27,7 +27,7 @@ export class Interoperability {
    * @public
    */
   public convertCurseforgeToModrinthProject(
-    curseforgeMod: CurseforgeMod,
+    curseforgeMod: CurseforgeMod
   ): ModrinthProject {
     return {
       id: curseforgeMod.id.toString(),
@@ -60,7 +60,7 @@ export class Interoperability {
       color: null,
       moderators_message: null,
       license: null,
-      gallery: curseforgeMod.screenshots.map((screenshot) => screenshot.url),
+      gallery: curseforgeMod.screenshots.map((screenshot) => screenshot.url)
     };
   }
 
@@ -70,10 +70,10 @@ export class Interoperability {
    * @public
    */
   public convertCurseforgeToModrinthVersions(
-    curseforgeFiles: CurseforgeFile[],
+    curseforgeFiles: CurseforgeFile[]
   ): ModrinthVersion[] {
     return curseforgeFiles.map((file) =>
-      this.convertCurseforgeToModrinthVersion(file),
+      this.convertCurseforgeToModrinthVersion(file)
     );
   }
 
@@ -83,7 +83,7 @@ export class Interoperability {
    * @public
    */
   public convertCurseforgeToModrinthVersion(
-    curseforgeFile: CurseforgeFile,
+    curseforgeFile: CurseforgeFile
   ): ModrinthVersion {
     return {
       requested_status: null,
@@ -100,7 +100,7 @@ export class Interoperability {
       downloads: curseforgeFile.downloadCount,
       // @ts-ignore
       version_type: this.convertCurseforgeReleaseType(
-        curseforgeFile.releaseType,
+        curseforgeFile.releaseType
       ),
       files: [
         {
@@ -111,16 +111,14 @@ export class Interoperability {
           file_type: null,
           hashes: {
             sha512: curseforgeFile.fileFingerprint.toString(),
-            sha1: curseforgeFile.fileFingerprint.toString(),
-          },
-        },
+            sha1: curseforgeFile.fileFingerprint.toString()
+          }
+        }
       ],
-      dependencies: curseforgeFile.dependencies.map((dep) =>
-        this.convertCurseforgeDependencyType(dep.relationType),
-      ),
+      dependencies: [],
       game_versions: curseforgeFile.gameVersions,
       // @ts-ignore
-      loaders: this.getLoadersFromCurseforgeFile(curseforgeFile),
+      loaders: this.getLoadersFromCurseforgeFile(curseforgeFile)
     };
   }
 
@@ -148,7 +146,7 @@ export class Interoperability {
    * @public
    */
   public convertCurseforgeDependencyType(
-    dependencyType: DependencyType,
+    dependencyType: DependencyType
   ): string {
     switch (dependencyType) {
       case DependencyType.RequiredDependency:
@@ -168,7 +166,7 @@ export class Interoperability {
    * @public
    */
   public getLoadersFromCurseforgeFile(
-    curseforgeFile: CurseforgeFile,
+    curseforgeFile: CurseforgeFile
   ): string[] {
     const loaders: string[] = [];
     if (
@@ -178,7 +176,7 @@ export class Interoperability {
     }
     if (
       curseforgeFile.gameVersions.some((v) =>
-        v.toLowerCase().includes('fabric'),
+        v.toLowerCase().includes('fabric')
       )
     ) {
       loaders.push('fabric');
@@ -197,7 +195,7 @@ export class Interoperability {
    * @public
    */
   public convertCurseforgeLoaderToModrinthLoader(
-    loader: ModLoaderType,
+    loader: ModLoaderType
   ): Loader | null {
     switch (loader) {
       case ModLoaderType.Fabric:
@@ -217,7 +215,7 @@ export class Interoperability {
    * @public
    */
   public convertGitHubToModrinthProject(
-    modInfo: GitHubModInfo,
+    modInfo: GitHubModInfo
   ): ModrinthProject {
     return {
       id: modInfo.project.id,
@@ -250,7 +248,7 @@ export class Interoperability {
       followers: 0,
       license: null,
       game_versions: [],
-      gallery: [],
+      gallery: []
     };
   }
 
@@ -266,15 +264,15 @@ export class Interoperability {
     versions: GitHubVersion[],
     projectId: string,
     mcVersion: string,
-    authorId: string,
+    authorId: string
   ): ModrinthVersion[] {
     return versions.map((version) =>
       this.convertGitHubToModrinthVersion(
         version,
         projectId,
         mcVersion,
-        authorId,
-      ),
+        authorId
+      )
     );
   }
 
@@ -290,7 +288,7 @@ export class Interoperability {
     version: GitHubVersion,
     projectId: string,
     mcVersion: string,
-    authorId: string,
+    authorId: string
   ): ModrinthVersion {
     return {
       name: version.name,
@@ -314,8 +312,8 @@ export class Interoperability {
         filename: file.filename,
         primary: file.primary,
         size: file.size,
-        file_type: null,
-      })),
+        file_type: null
+      }))
     };
   }
 
@@ -327,7 +325,7 @@ export class Interoperability {
    */
   public createGitHubInstalledVersion(
     filename: string,
-    projectId: string,
+    projectId: string
   ): ModrinthVersion {
     const versionMatch = filename.match(/1.\d{1,2}.\d{1,2}/);
     const version = versionMatch ? versionMatch[0] : null;
@@ -355,9 +353,9 @@ export class Interoperability {
           filename: filename,
           primary: true,
           size: 0,
-          file_type: null,
-        },
-      ],
+          file_type: null
+        }
+      ]
     };
   }
 }

@@ -4,7 +4,7 @@ export interface ModrinthVersion {
   name: string;
   version_number: string;
   changelog: string;
-  dependencies: string[];
+  dependencies: Dependency[];
   game_versions: string[];
   version_type: VersionType;
   loaders: Loader[];
@@ -63,20 +63,20 @@ export interface ModrinthProject {
 export enum VersionType {
   Release = 'release',
   Beta = 'beta',
-  Alpha = 'alpha',
+  Alpha = 'alpha'
 }
 
 export enum RequirementLevel {
   Required = 'required',
   Optional = 'optional',
-  Unsupported = 'unsupported',
+  Unsupported = 'unsupported'
 }
 
 export enum ProjectType {
   Mod = 'mod',
   ResourcePack = 'resourcepack',
   ModPack = 'modpack',
-  Shader = 'shader',
+  Shader = 'shader'
 }
 
 export enum Status {
@@ -86,7 +86,14 @@ export enum Status {
   Unlisted = 'unlisted',
   Archived = 'archived',
   Processing = 'processing',
-  Unknown = 'unknown',
+  Unknown = 'unknown'
+}
+
+export interface Dependency {
+  version_id: string | null;
+  project_id: string | null;
+  file_name: string | null;
+  dependency_type: 'required' | 'optional' | 'incompatible' | 'embedded';
 }
 
 export interface Modpack {
@@ -112,7 +119,7 @@ export enum ProjectType {
   MOD = 'mod',
   MODPACK = 'modpack',
   RESOURCEPACK = 'resourcepack',
-  SHADER = 'shader',
+  SHADER = 'shader'
 }
 
 export enum IndexerSort {
@@ -121,7 +128,7 @@ export enum IndexerSort {
   FOLLOWS = 'follows',
   NEWEST = 'newest',
   UPDATED = 'updated',
-  FEATURED = 'featured',
+  FEATURED = 'featured'
 }
 
 export interface SearchProjectsParams {

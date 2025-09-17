@@ -4,10 +4,10 @@ import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
-    selector: 'app-file-dropzone',
-    templateUrl: './file-dropzone.component.html',
-    styleUrls: ['./file-dropzone.component.css'],
-    standalone: false
+  selector: 'app-file-dropzone',
+  templateUrl: './file-dropzone.component.html',
+  styleUrls: ['./file-dropzone.component.css'],
+  standalone: false
 })
 export class FileDropzoneComponent implements OnInit, OnDestroy {
   files: File[] = [];
@@ -33,7 +33,7 @@ export class FileDropzoneComponent implements OnInit, OnDestroy {
     if (duplicateFiles.length) {
       console.log(
         'The following files were skipped because they were duplicates: ' +
-          duplicateFiles.join(', '),
+          duplicateFiles.join(', ')
       );
       Swal.fire({
         position: 'top-end',
@@ -43,7 +43,7 @@ export class FileDropzoneComponent implements OnInit, OnDestroy {
           (duplicateFiles.length > 1 ? 's' : ''),
         showConfirmButton: false,
         timer: 2000,
-        backdrop: false,
+        backdrop: false
       });
     }
     this.filesService.setFiles(this.files);

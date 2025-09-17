@@ -3,7 +3,7 @@ import {
   CurseforgeMod,
   CurseforgeResponse,
   SearchCriterias,
-  SearchResult,
+  SearchResult
 } from './types.curseforge';
 import {
   bufferTime,
@@ -16,7 +16,7 @@ import {
   Subject,
   switchMap,
   take,
-  timeout,
+  timeout
 } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
@@ -37,8 +37,8 @@ export class Curseforge extends BaseApiProvider {
     'Content-Type': 'application/json',
     Accept: 'application/json',
     'x-api-key': window.atob(
-      'JDJhJDEwJEN0ZmFPQTRIT1phbXZTMXphVHUwLnVoTS51VzlNNzBQOGRyZnF2WUptOFNXdy5yWTlPSk1t',
-    ),
+      'JDJhJDEwJEN0ZmFPQTRIT1phbXZTMXphVHUwLnVoTS51VzlNNzBQOGRyZnF2WUptOFNXdy5yWTlPSk1t'
+    )
   };
 
   public static get Instance() {
@@ -53,21 +53,21 @@ export class Curseforge extends BaseApiProvider {
   private getFileBufferResolver = this.getFileBuffer.pipe(
     bufferTime(this.bufferDelay),
     switchMap((fingerprints) => this.getFilesFromFingerprints(fingerprints)),
-    share(),
+    share()
   );
 
   private getModBuffer = new Subject<number>();
   private getModBufferResolver = this.getModBuffer.pipe(
     bufferTime(this.bufferDelay),
     switchMap((ids) => this.getMods(ids)),
-    share(),
+    share()
   );
 
   private getFileByIdBuffer = new Subject<number>();
   private getFileByIdBufferResolver = this.getFileByIdBuffer.pipe(
     bufferTime(this.bufferDelay),
     switchMap((fileIds) => this.getFilesById(fileIds)),
-    share(),
+    share()
   );
 
   protected setupBuffering() {
@@ -98,7 +98,7 @@ export class Curseforge extends BaseApiProvider {
    * @param ids Array of mod IDs
    */
   public getMods(
-    ids: number[],
+    ids: number[]
   ): Observable<{ [id: number]: CurseforgeMod | AnnotatedError }> {
     if (ids.length === 0) {
       return of({});
@@ -121,8 +121,8 @@ export class Curseforge extends BaseApiProvider {
         catchError(
           this.createErrorHandler<{
             [id: number]: CurseforgeMod | AnnotatedError;
-          }>(),
-        ),
+          }>()
+        )
       );
   }
 
@@ -136,7 +136,7 @@ export class Curseforge extends BaseApiProvider {
     return this.getModBufferResolver.pipe(
       filter((mods) => mods[id] != undefined),
       map((mods) => mods[id]),
-      take(1),
+      take(1)
     );
   }
 
@@ -145,7 +145,7 @@ export class Curseforge extends BaseApiProvider {
    * @param fingerprints Array of file fingerprints
    */
   private getFilesFromFingerprints(
-    fingerprints: number[],
+    fingerprints: number[]
   ): Observable<{ [fingerprint: number]: CurseforgeFile | AnnotatedError }> {
     if (fingerprints.length === 0) {
       return of({});
@@ -156,7 +156,11 @@ export class Curseforge extends BaseApiProvider {
         CurseforgeResponse<{
           exactMatches: { file: CurseforgeFile; id: number }[];
         }>
-      >(`${this.curseforgeAPIUrl}fingerprints`, { fingerprints: fingerprints }, { headers: this.headers, observe: 'response' })
+      >(
+        `${this.curseforgeAPIUrl}fingerprints`,
+        { fingerprints: fingerprints },
+        { headers: this.headers, observe: 'response' }
+      )
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
@@ -166,13 +170,13 @@ export class Curseforge extends BaseApiProvider {
           } = {};
           fingerprints.forEach((fingerprint) => {
             const res = resp.body!.data.exactMatches.find(
-              (item) => item.file.fileFingerprint === fingerprint,
+              (item) => item.file.fileFingerprint === fingerprint
             );
             if (res) {
               result[fingerprint] = res.file;
             } else {
               result[fingerprint] = {
-                error: { message: 'Not found', status: 404 },
+                error: { message: 'Not found', status: 404 }
               };
             }
           });
@@ -181,8 +185,8 @@ export class Curseforge extends BaseApiProvider {
         catchError(
           this.createErrorHandler<{
             [fingerprint: number]: CurseforgeFile | AnnotatedError;
-          }>(),
-        ),
+          }>()
+        )
       );
   }
 
@@ -191,7 +195,7 @@ export class Curseforge extends BaseApiProvider {
    * @param fileIds Array of file IDs
    */
   private getFilesById(
-    fileIds: number[],
+    fileIds: number[]
   ): Observable<{ [fileId: number]: CurseforgeFile | AnnotatedError }> {
     if (fileIds.length === 0) {
       return of({});
@@ -215,8 +219,8 @@ export class Curseforge extends BaseApiProvider {
         catchError(
           this.createErrorHandler<{
             [fileId: number]: CurseforgeFile | AnnotatedError;
-          }>(),
-        ),
+          }>()
+        )
       );
   }
 
@@ -225,7 +229,7 @@ export class Curseforge extends BaseApiProvider {
    * @param buffer The binary representation of the mod file
    */
   public getFileFromBuffer(
-    buffer: ArrayBuffer,
+    buffer: ArrayBuffer
   ): Observable<CurseforgeFile | AnnotatedError> {
     const fingerprint = compute_fingerprint(new Uint8Array(buffer));
     this.getFileBuffer.next(fingerprint);
@@ -233,7 +237,7 @@ export class Curseforge extends BaseApiProvider {
     return this.getFileBufferResolver.pipe(
       filter((files) => files[fingerprint] != undefined),
       map((files) => files[fingerprint]),
-      take(1),
+      take(1)
     );
   }
 
@@ -242,14 +246,14 @@ export class Curseforge extends BaseApiProvider {
    * @param fileId File ID
    */
   public getFileFromIndex(
-    fileId: number,
+    fileId: number
   ): Observable<CurseforgeFile | AnnotatedError> {
     this.getFileByIdBuffer.next(fileId);
 
     return this.getFileByIdBufferResolver.pipe(
       filter((files) => files[fileId] != undefined),
       map((files) => files[fileId]),
-      take(1),
+      take(1)
     );
   }
 
@@ -258,7 +262,7 @@ export class Curseforge extends BaseApiProvider {
    * @param searchCriterias The search criteria
    */
   public searchMods(
-    searchCriterias: SearchCriterias,
+    searchCriterias: SearchCriterias
   ): Observable<SearchResult | AnnotatedError> {
     let url = this.curseforgeAPIUrl + 'mods/search?gameId=432';
 
@@ -271,13 +275,13 @@ export class Curseforge extends BaseApiProvider {
     return this.http
       .get<CurseforgeResponse<SearchResult>>(url, {
         headers: this.headers,
-        observe: 'response',
+        observe: 'response'
       })
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
         map((resp) => resp.body!.data),
-        catchError(this.createErrorHandler<SearchResult>()),
+        catchError(this.createErrorHandler<SearchResult>())
       );
   }
 
@@ -289,7 +293,7 @@ export class Curseforge extends BaseApiProvider {
    */
   public getModFileChangelog(
     modId: number,
-    fileId: number,
+    fileId: number
   ): Observable<string | AnnotatedError> {
     return this.http
       .get<
@@ -299,7 +303,7 @@ export class Curseforge extends BaseApiProvider {
         timeout(10000),
         this.createRetryStrategy(3, 1000),
         map((resp) => resp.body!.data),
-        catchError(this.createErrorHandler<string>()),
+        catchError(this.createErrorHandler<string>())
       );
   }
 }

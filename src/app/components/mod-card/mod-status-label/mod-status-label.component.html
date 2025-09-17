@@ -19,9 +19,7 @@
           d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12"
         />
       </svg>
-      <span>{{
-          view == View.Grid ? "Installed" : "Currently Installed"
-        }}</span>
+      <span>{{ view == View.Grid ? "Installed" : "Currently Installed" }}</span>
     }
     @case (VersionStatus.Updated) {
       <svg
@@ -57,9 +55,7 @@
           d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <span>{{
-          view == View.Grid ? "Outdated" : "Older Version"
-        }}</span>
+      <span>{{ view == View.Grid ? "Outdated" : "Older Version" }}</span>
     }
   }
 </span>
