@@ -3,9 +3,10 @@ import { View } from '../mod-card.component';
 import { VersionStatus } from '../../mod-panel/mod-panel.component';
 
 @Component({
-  selector: 'app-mod-status-label',
-  templateUrl: './mod-status-label.component.html',
-  styleUrls: ['./mod-status-label.component.css'],
+    selector: 'app-mod-status-label',
+    templateUrl: './mod-status-label.component.html',
+    styleUrls: ['./mod-status-label.component.css'],
+    standalone: false
 })
 export class ModStatusLabelComponent {
   @Input() status!: VersionStatus;

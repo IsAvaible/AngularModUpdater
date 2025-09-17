@@ -1,126 +1,135 @@
 <span
   class="flex items-center justify-center gap-x-1 dark:text-slate-200"
-  [ngSwitch]="type"
   [ngClass]="view == View.Grid ? 'text-sm' : ''"
->
-  <svg
-    *ngSwitchCase="ProjectType.ModPack"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke-width="1.5"
-    stroke="currentColor"
-    width="14"
-    height="14"
   >
-    <path
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z"
-    />
-  </svg>
-  <svg
-    *ngSwitchCase="ProjectType.ResourcePack"
-    width="14"
-    height="14"
-    stroke-width="1.5"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    stroke="currentColor"
-  >
-    <path
-      d="M21 7.6V20.4C21 20.7314 20.7314 21 20.4 21H7.6C7.26863 21 7 20.7314 7 20.4V7.6C7 7.26863 7.26863 7 7.6 7H20.4C20.7314 7 21 7.26863 21 7.6Z"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M18 4H4.6C4.26863 4 4 4.26863 4 4.6V18"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M7 16.8L12.4444 15L21 18"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M16.5 13C15.6716 13 15 12.3284 15 11.5C15 10.6716 15.6716 10 16.5 10C17.3284 10 18 10.6716 18 11.5C18 12.3284 17.3284 13 16.5 13Z"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-  </svg>
-  <svg
-    *ngSwitchCase="ProjectType.Shader"
-    width="14"
-    height="14"
-    stroke-width="1.5"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    stroke="currentColor"
-  >
-    <path
-      d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18Z"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M22 12L23 12"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M12 2V1"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M12 23V22"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M20 20L19 19"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M20 4L19 5"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M4 20L5 19"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M4 4L5 5"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-    <path
-      d="M1 12L2 12"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    ></path>
-  </svg>
-
-  <span *ngSwitchCase="ProjectType.ModPack">Modpack</span>
-  <span *ngSwitchCase="ProjectType.ResourcePack">Resource Pack</span>
-  <span *ngSwitchCase="ProjectType.Shader">Shader</span>
+  @switch (type) {
+    @case (ProjectType.ModPack) {
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        width="14"
+        height="14"
+        >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z"
+          />
+      </svg>
+    }
+    @case (ProjectType.ResourcePack) {
+      <svg
+        width="14"
+        height="14"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        stroke="currentColor"
+        >
+        <path
+          d="M21 7.6V20.4C21 20.7314 20.7314 21 20.4 21H7.6C7.26863 21 7 20.7314 7 20.4V7.6C7 7.26863 7.26863 7 7.6 7H20.4C20.7314 7 21 7.26863 21 7.6Z"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M18 4H4.6C4.26863 4 4 4.26863 4 4.6V18"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M7 16.8L12.4444 15L21 18"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M16.5 13C15.6716 13 15 12.3284 15 11.5C15 10.6716 15.6716 10 16.5 10C17.3284 10 18 10.6716 18 11.5C18 12.3284 17.3284 13 16.5 13Z"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+    }
+    @case (ProjectType.Shader) {
+      <svg
+        width="14"
+        height="14"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        stroke="currentColor"
+        >
+        <path
+          d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18Z"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M22 12L23 12"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M12 2V1"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M12 23V22"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M20 20L19 19"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M20 4L19 5"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M4 20L5 19"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M4 4L5 5"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M1 12L2 12"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+    }
+    @case (ProjectType.ModPack) {
+      <span>Modpack</span>
+    }
+    @case (ProjectType.ResourcePack) {
+      <span>Resource Pack</span>
+    }
+    @case (ProjectType.Shader) {
+      <span>Shader</span>
+    }
+  }
 </span>

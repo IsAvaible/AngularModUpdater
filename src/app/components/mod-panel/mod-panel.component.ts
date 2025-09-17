@@ -28,7 +28,8 @@ import {
   ProjectType,
 } from '../../libraries/modrinth/types.modrinth';
 import { View } from '../mod-card/mod-card.component';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
+import { sha1 } from 'js-sha1';
 import { saveAs } from 'file-saver';
 import { Loader, LoaderService } from '../../services/loader.service';
 import Swal from 'sweetalert2';
@@ -40,9 +41,10 @@ import { CurseforgeFile } from '../../libraries/curseforge/types.curseforge';
 import { CurseforgeSupportService } from '../../services/curseforgeSupport.service';
 
 @Component({
-  selector: 'app-mod-panel',
-  templateUrl: './mod-panel.component.html',
-  styleUrls: ['./mod-panel.component.css'],
+    selector: 'app-mod-panel',
+    templateUrl: './mod-panel.component.html',
+    styleUrls: ['./mod-panel.component.css'],
+    standalone: false
 })
 export class ModPanelComponent implements OnInit, OnDestroy {
   availableMods: { versions: ExtendedVersion[]; project: ModrinthProject }[] =
@@ -79,7 +81,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   versionsSubscription!: Subscription;
   loaderSubscription!: Subscription;
   curseforgeSupscription!: Subscription;
-  private sha1 = require('js-sha1');
   private finishedSubscription!: Subscription;
   private percentSubscription!: Subscription;
 
@@ -217,7 +218,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         return false;
       }
 
-      fileHash = this.sha1(fileBuffer);
+      fileHash = sha1(fileBuffer);
     } else {
       fileHash = hash;
     }

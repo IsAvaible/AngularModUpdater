@@ -10,24 +10,22 @@ import { Loader, LoaderService } from '../../services/loader.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-loader-selector',
-  templateUrl: './loader-selector.component.html',
-  styleUrls: ['./loader-selector.component.css'],
-  animations: [
-    trigger('openClose', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'scale(0.95)' }),
-        animate('100ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
-      ]),
-      transition(':leave', [
-        style({ opacity: 1, transform: 'scale(1)' }),
-        animate(
-          '75ms ease-in',
-          style({ opacity: 0, transform: 'scale(0.95)' }),
-        ),
-      ]),
-    ]),
-  ],
+    selector: 'app-loader-selector',
+    templateUrl: './loader-selector.component.html',
+    styleUrls: ['./loader-selector.component.css'],
+    animations: [
+        trigger('openClose', [
+            transition(':enter', [
+                style({ opacity: 0, transform: 'scale(0.95)' }),
+                animate('100ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
+            ]),
+            transition(':leave', [
+                style({ opacity: 1, transform: 'scale(1)' }),
+                animate('75ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' })),
+            ]),
+        ]),
+    ],
+    standalone: false
 })
 export class LoaderSelectorComponent implements OnDestroy {
   loaderValues = Object.values(Loader);

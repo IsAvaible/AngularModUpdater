@@ -12,7 +12,7 @@ export abstract class RateLimitedApi {
     return null; // Override this in subclasses to provide client-side rate limit info
   }
 
-  private _rateLimitTimer: NodeJS.Timer | null = null;
+  private _rateLimitTimer: NodeJS.Timeout | null = null;
   private _isClientSideRateLimit: boolean = false;
 
   // ===== PUBLIC API =====
@@ -175,7 +175,7 @@ export abstract class RateLimitedApi {
    */
   protected async showRateLimitNotification(): Promise<void> {
     const secondsUntilReset = this.getRateLimitSecondsUntilReset()!;
-    let timerInterval: NodeJS.Timer | null = null;
+    let timerInterval: NodeJS.Timeout | null = null;
     await Swal.fire({
       position: 'top-start',
       icon: 'error',

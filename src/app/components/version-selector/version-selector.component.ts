@@ -14,24 +14,22 @@ import {
 } from '../../services/versions.service';
 
 @Component({
-  selector: 'app-version-selector',
-  templateUrl: './version-selector.component.html',
-  styleUrls: ['./version-selector.component.css'],
-  animations: [
-    trigger('openClose', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'scale(0.95)' }),
-        animate('100ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
-      ]),
-      transition(':leave', [
-        style({ opacity: 1, transform: 'scale(1)' }),
-        animate(
-          '75ms ease-in',
-          style({ opacity: 0, transform: 'scale(0.95)' }),
-        ),
-      ]),
-    ]),
-  ],
+    selector: 'app-version-selector',
+    templateUrl: './version-selector.component.html',
+    styleUrls: ['./version-selector.component.css'],
+    animations: [
+        trigger('openClose', [
+            transition(':enter', [
+                style({ opacity: 0, transform: 'scale(0.95)' }),
+                animate('100ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
+            ]),
+            transition(':leave', [
+                style({ opacity: 1, transform: 'scale(1)' }),
+                animate('75ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' })),
+            ]),
+        ]),
+    ],
+    standalone: false
 })
 export class VersionSelectorComponent implements OnInit, OnDestroy {
   versions!: MinecraftVersion[]; // Stores all minecraft versions

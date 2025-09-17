@@ -23,7 +23,8 @@ import {
 } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
+import { sha1 } from 'js-sha1';
 import { AnnotatedError, BaseApiProvider } from '../BaseApiProvider';
 import { RateLimitInfo } from '../RateLimitedApi';
 
@@ -44,7 +45,6 @@ export class Modrinth extends BaseApiProvider {
   }
 
   private http = inject(HttpClient);
-  private sha1 = require('js-sha1');
 
   protected override get _rateLimitInfo(): RateLimitInfo {
     return {
@@ -270,7 +270,7 @@ export class Modrinth extends BaseApiProvider {
   public getVersionFromBuffer(
     buffer: ArrayBuffer,
   ): Observable<ModrinthVersion | AnnotatedError> {
-    const fileHash = this.sha1(buffer);
+    const fileHash = sha1(buffer);
     return this.getVersionFromHash(fileHash);
   }
 

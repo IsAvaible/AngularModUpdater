@@ -4,9 +4,10 @@ import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
-  selector: 'app-file-dropzone',
-  templateUrl: './file-dropzone.component.html',
-  styleUrls: ['./file-dropzone.component.css'],
+    selector: 'app-file-dropzone',
+    templateUrl: './file-dropzone.component.html',
+    styleUrls: ['./file-dropzone.component.css'],
+    standalone: false
 })
 export class FileDropzoneComponent implements OnInit, OnDestroy {
   files: File[] = [];

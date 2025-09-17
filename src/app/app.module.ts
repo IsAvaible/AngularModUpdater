@@ -2,7 +2,7 @@ import { NgModule, isDevMode, SecurityContext } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgxDropzoneModule } from 'ngx-dropzone';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
 import { TitleComponent } from './components/title/title.component';
@@ -26,45 +26,38 @@ import { ModStatusLabelComponent } from './components/mod-card/mod-status-label/
 import { ProjectTypeLabelComponent } from './components/mod-card/project-type-label/project-type-label.component';
 import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator.component';
 
-@NgModule({
-  declarations: [
-    AppComponent,
-    TitleComponent,
-    DescriptionComponent,
-    VersionSelectorComponent,
-    FileDropzoneComponent,
-    StartButtonComponent,
-    FooterComponent,
-    ModPanelComponent,
-    ModCardComponent,
-    DateAgoPipe,
-    ShortNumberPipe,
-    LoaderSelectorComponent,
-    InfoTriangleComponent,
-    InfoSectionComponent,
-    ModStatusLabelComponent,
-    ProjectTypeLabelComponent,
-    LoadingIndicatorComponent,
-  ],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    NgxDropzoneModule,
-    HttpClientModule,
-    FormsModule,
-    OrderModule,
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: !isDevMode(),
-      // Register the ServiceWorker as soon as the application is stable
-      // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000',
-    }),
-    MarkdownModule.forRoot({
-      loader: HttpClient,
-      sanitize: SecurityContext.NONE,
-    }),
-  ],
-  providers: [],
-  bootstrap: [AppComponent],
-})
+@NgModule({ declarations: [
+        AppComponent,
+        TitleComponent,
+        DescriptionComponent,
+        VersionSelectorComponent,
+        FileDropzoneComponent,
+        StartButtonComponent,
+        FooterComponent,
+        ModPanelComponent,
+        ModCardComponent,
+        DateAgoPipe,
+        ShortNumberPipe,
+        LoaderSelectorComponent,
+        InfoTriangleComponent,
+        InfoSectionComponent,
+        ModStatusLabelComponent,
+        ProjectTypeLabelComponent,
+        LoadingIndicatorComponent,
+    ],
+    bootstrap: [AppComponent], imports: [BrowserModule,
+        BrowserAnimationsModule,
+        NgxDropzoneModule,
+        FormsModule,
+        OrderModule,
+        ServiceWorkerModule.register('ngsw-worker.js', {
+            enabled: !isDevMode(),
+            // Register the ServiceWorker as soon as the application is stable
+            // or after 30 seconds (whichever comes first).
+            registrationStrategy: 'registerWhenStable:30000',
+        }),
+        MarkdownModule.forRoot({
+            loader: HttpClient,
+            sanitize: SecurityContext.NONE,
+        })], providers: [provideHttpClient(withInterceptorsFromDi())] })
 export class AppModule {}

@@ -4,7 +4,8 @@ import { Pipe, PipeTransform } from '@angular/core';
  * Pipe that converts a number to a short number with a suffix
  */
 @Pipe({
-  name: 'shortNumber',
+    name: 'shortNumber',
+    standalone: false
 })
 export class ShortNumberPipe implements PipeTransform {
   transform(number: number, args?: any): any {
