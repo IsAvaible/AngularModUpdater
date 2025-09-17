@@ -1,0 +1,8 @@
+# Detect vulnerable or outdated packages
+npm audit
+
+# Run lint-staged to check formatting for staged files
+npx lint-staged --config .lintstagedrc.json --concurrent
+
+# For debugging, uncomment the following line [Reference](https://typicode.github.io/husky/how-to.html#testing-hooks-without-committing)
+# exit 1
