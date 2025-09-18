@@ -797,11 +797,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @returns [anyToProcess, finished$, percent$] where anyToProcess is a boolean indicating if there are files to process,
    * finished$ is an observable that emits when the processing is finished, and percent$ is an observable that emits the progress percentage
    */
-  /**
-   * Runs the mod processing on the files uploaded by the user
-   * @returns [anyToProcess, finished$, percent$] where anyToProcess is a boolean indicating if there are files to process,
-   * finished$ is an observable that emits when the processing is finished, and percent$ is an observable that emits the progress percentage
-   */
   async updateMods(): Promise<
     [boolean, Observable<boolean>, Observable<number>]
   > {
@@ -984,38 +979,67 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Orchestrates the entire update process, including file processing and dependency fetching.
+   */
   async startUpdateMods() {
-    const [anyToProcess, finished$, percent$] = await this.updateMods();
+    const [anyToProcess, initialFinished$, initialPercent$] =
+      await this.updateMods();
     if (!anyToProcess) {
       return;
     }
+
     this.loadingPercent = 0;
     this.loading = true;
     if (this.finishedSubscription) this.finishedSubscription.unsubscribe();
     if (this.percentSubscription) this.percentSubscription.unsubscribe();
 
-    this.percentSubscription = percent$.subscribe((percent) => {
-      // Cap percent at 95% to leave room for dependency checking
-      this.loadingPercent = percent * 0.95;
+    // assuming an average of 1-2 dependencies per mod batch
+    const dependencyProcessingWeight = 1.5 / this.files.length;
+    const fileProcessingWeight = 1 - dependencyProcessingWeight;
+
+    // Initial File Processing
+    this.percentSubscription = initialPercent$.subscribe((percent) => {
+      this.loadingPercent = percent * fileProcessingWeight;
     });
 
-    this.finishedSubscription = finished$
+    this.finishedSubscription = initialFinished$
       .pipe(
-        concatMap(async () => {
+        // Dependency Processing
+        concatMap(() => {
           const mcVersion: MinecraftVersion = this.mcVersions.find(
             (v) => v.selected
           )!;
-          await this.processDependencies(mcVersion);
+          const { progress$, finished$ } = this.processDependencies(mcVersion);
+
+          // Switch from file progress to dependency progress
+          if (this.percentSubscription) this.percentSubscription.unsubscribe();
+          this.percentSubscription = progress$.subscribe((depPercent) => {
+            this.loadingPercent =
+              fileProcessingWeight + depPercent * dependencyProcessingWeight;
+          });
+
+          return finished$;
+        }),
+        tap(() => {
+          // Ensure the bar hits 100% before the delay
           this.loadingPercent = 1;
         }),
-        delay(500)
+        delay(200) // Small delay for UX to show 100%
       )
       .subscribe(() => {
         this.loading = false;
+        if (this.percentSubscription) this.percentSubscription.unsubscribe();
       });
   }
 
-  private async processDependencies(mcVersion: MinecraftVersion) {
+  /**
+   * Processes dependencies and returns observables for progress and completion.
+   */
+  private processDependencies(mcVersion: MinecraftVersion): {
+    progress$: Observable<number>;
+    finished$: Observable<boolean>;
+  } {
     const allDependencies = this.availableMods
       .flatMap(
         (mod) =>
@@ -1031,17 +1055,42 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       ...new Set(allDependencies.map((dep) => dep.project_id!))
     ].filter((id) => !existingProjectIds.has(id));
 
+    const progress$ = new Subject<number>();
+
     if (uniqueNewDependencyIds.length === 0) {
-      return;
+      // No dependencies, so we are done. Emit progress and complete asynchronously.
+      setTimeout(() => {
+        progress$.next(1);
+        progress$.complete();
+      }, 0);
+      return { progress$: progress$.asObservable(), finished$: of(true) };
     }
+
+    let processedCount = 0;
+    const totalDependencies = uniqueNewDependencyIds.length;
 
     const dependencyProcessingObservables = uniqueNewDependencyIds.map(
       (projectId) => {
-        return from(this.processSingleDependency(projectId, mcVersion));
+        return from(this.processSingleDependency(projectId, mcVersion)).pipe(
+          tap(() => {
+            processedCount++;
+            progress$.next(processedCount / totalDependencies);
+          })
+        );
       }
     );
 
-    await firstValueFrom(forkJoin(dependencyProcessingObservables));
+    const finished$ = forkJoin(dependencyProcessingObservables).pipe(
+      map(() => true), // forkJoin emits an array of results; map to a single boolean
+      tap(() => {
+        if (!progress$.closed) {
+          progress$.next(1);
+          progress$.complete();
+        }
+      })
+    );
+
+    return { progress$: progress$.asObservable(), finished$ };
   }
 
   private async processSingleDependency(
