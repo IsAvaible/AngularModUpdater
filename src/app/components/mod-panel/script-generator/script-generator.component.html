@@ -1,12 +1,12 @@
 <div
-  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-40"
+  class="fixed inset-0 z-40 h-full w-full overflow-y-auto bg-gray-600 bg-opacity-50"
   (click)="close()"
 ></div>
 <div
-  class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg w-full max-w-4xl z-50"
+  class="fixed top-1/2 left-1/2 z-50 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-8 shadow-lg dark:bg-slate-800"
   (click)="$event.stopPropagation()"
 >
-  <h2 class="text-2xl text-center font-bold mb-4 dark:text-slate-100">
+  <h2 class="mb-4 text-center text-2xl font-bold dark:text-slate-100">
     Generate Cleanup & Update Script from Results
   </h2>
   <p>
@@ -20,7 +20,7 @@
     similar.
   </p>
   <!-- Script Language Selection -->
-  <div class="flex flex-col mt-2 gap-y-1 items-center justify-center">
+  <div class="mt-2 flex flex-col items-center justify-center gap-y-1">
     <label class="block text-lg font-medium dark:text-slate-300"
       >Scripting Language</label
     >
@@ -33,7 +33,7 @@
           value="powershell"
           [(ngModel)]="scriptType"
           (ngModelChange)="generateScript()"
-          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+          class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
         />
         <label
           for="script-pws"
@@ -49,7 +49,7 @@
           value="bash"
           [(ngModel)]="scriptType"
           (ngModelChange)="generateScript()"
-          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+          class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
         />
         <label
           for="script-bash"
@@ -74,12 +74,12 @@
     />
     <ng-template #copyButtonTemplate>
       <button
-        class="gap-x-2 bg-white ring-1 ring-inset ring-gray-300 hover:ring-gray-200 dark:ring-slate-500 dark:hover:ring-slate-200 text-gray-800 dark:bg-slate-800 dark:text-slate-100 focus:ring-gray-400 focus:outline-none rounded-md flex items-center p-2 group"
+        class="group flex items-center gap-x-2 rounded-md bg-white p-2 text-gray-800 ring-1 ring-inset ring-gray-300 hover:ring-gray-200 focus:outline-none focus:ring-gray-400 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-500 dark:hover:ring-slate-200"
       >
-        <span class="font-medium relative">
+        <span class="relative font-medium">
           <span class="group-active:invisible"> Copy Script </span>
           <span
-            class="absolute left-0 top-0 w-full text-center hidden group-active:inline-block"
+            class="absolute left-0 top-0 hidden w-full text-center group-active:inline-block"
           >
             Copied!
           </span>
@@ -91,7 +91,7 @@
           viewBox="0 0 24 24"
           stroke-width="1.5"
           stroke="currentColor"
-          class="w-4 h-4"
+          class="h-4 w-4"
         >
           <path
             class="group-active:hidden"
@@ -113,7 +113,7 @@
   <div class="mt-8 flex justify-end">
     <button
       (click)="close()"
-      class="bg-white ring-1 font-semibold ring-inset transition-shadow ring-gray-300 hover:ring-gray-400 active:ring-gray-500 dark:ring-slate-500 dark:hover:ring-slate-200 text-gray-800 dark:bg-slate-800 dark:text-slate-100 focus:ring-gray-400 focus:outline-none rounded-md flex items-center px-3 py-1.5"
+      class="flex items-center rounded-md bg-white px-3 py-1.5 font-semibold text-gray-800 ring-1 ring-inset ring-gray-300 transition-shadow hover:ring-gray-400 focus:outline-none focus:ring-gray-400 active:ring-gray-500 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-500 dark:hover:ring-slate-200"
     >
       Close
     </button>

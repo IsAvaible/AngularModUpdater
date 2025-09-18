@@ -1,24 +1,24 @@
 @if (show) {
   <div
-    class="inset-0 fixed z-50"
+    class="fixed inset-0 z-50"
     aria-labelledby="modal-title"
     role="dialog"
     aria-modal="true"
   >
     <div
-      class="flex items-center justify-center pt-4 px-4 min-h-screen text-center sm:block sm:p-0"
+      class="flex min-h-screen items-center justify-center px-4 pt-4 text-center sm:block sm:p-0"
       @fadeInOutAnimation
     >
       <div class="fixed inset-0" aria-hidden="true"></div>
       <span
-        class="hidden sm:inline-block sm:align-middle sm:h-screen"
+        class="hidden sm:inline-block sm:h-screen sm:align-middle"
         aria-hidden="true"
         >&#8203;</span
       >
       <div
-        class="relative inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:align-middle sm:max-w-[80%] xl:max-w-7xl sm:p-6"
+        class="relative inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all dark:bg-slate-800 sm:max-w-[80%] sm:p-6 sm:align-middle xl:max-w-7xl"
       >
-        <div class="absolute top-0 right-0 pt-1 pr-1 mx-4 my-5">
+        <div class="absolute top-0 right-0 mx-4 my-5 pt-1 pr-1">
           <button
             (click)="closeInfoSection()"
             type="button"
@@ -44,11 +44,11 @@
         </div>
         <div
           #modal
-          class="sm:flex mx-4 my-5 sm:items-start max-h-[75vh] overflow-y-auto"
+          class="mx-4 my-5 max-h-[75vh] overflow-y-auto sm:flex sm:items-start"
           @transformInOutAnimation
         >
           <div class="info-section">
-            <h2 class="font-semibold text-lg">
+            <h2 class="text-lg font-semibold">
               Minecraft Mod Updater and Loader Migrator
             </h2>
             <p>
@@ -62,7 +62,7 @@
               >
               API by simply uploading them as .jar files.
             </p>
-            <h3 class="font-semibold text-lg">How to use:</h3>
+            <h3 class="text-lg font-semibold">How to use:</h3>
             <ol>
               <li>
                 Select the desired mod loader (Fabric / Forge / Quilt /
@@ -82,7 +82,7 @@
               in their modpacks to the latest versions by uploading the
               modrinth.index.json file.
             </p>
-            <h3 class="font-semibold text-lg">Modrinth's Rate Limit:</h3>
+            <h3 class="text-lg font-semibold">Modrinth's Rate Limit:</h3>
             <p>
               Please note that this tool relies on the Modrinth API for fetching
               mod updates. Modrinth has a rate limit in place to prevent abuse.
@@ -104,7 +104,7 @@
               }
               .
             </p>
-            <h3 class="font-semibold text-lg">Attributions:</h3>
+            <h3 class="text-lg font-semibold">Attributions:</h3>
             <p>
               This tool was made with
               <a
@@ -148,7 +148,7 @@
               >.
             </p>
             <label
-              class="inline-flex items-center cursor-pointer"
+              class="inline-flex cursor-pointer items-center"
               (click)="toggleCurseforgeSupport($event)"
             >
               <input type="checkbox" [(ngModel)]="curseforgeSupport" />
@@ -160,7 +160,7 @@
           <button
             (click)="closeInfoSection()"
             type="button"
-            class="sm:hidden mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-slate-900 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:border-slate-900 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700 sm:mt-0 sm:ml-3 sm:hidden sm:w-auto sm:text-sm"
           >
             Close
           </button>

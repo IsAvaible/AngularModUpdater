@@ -1,10 +1,10 @@
 @if (view == View.List) {
   <div
-    class="p-4 w-full bg-white dark:bg-slate-800 dark:text-slate-200 rounded-lg shadow-md flex flex-col"
+    class="flex w-full flex-col rounded-lg bg-white p-4 shadow-md dark:bg-slate-800 dark:text-slate-200"
   >
-    <div class="overflow-y-auto flex gap-x-5">
+    <div class="flex gap-x-5 overflow-y-auto">
       <div
-        class="flex flex-col justify-center sm:order-first min-w-16 min-h-16"
+        class="min-w-16 min-h-16 flex flex-col justify-center sm:order-first"
       >
         @if (view == View.List && project.icon_url) {
           <a
@@ -24,8 +24,8 @@
           </a>
         }
       </div>
-      <div class="flex flex-col flex-grow order-last sm:order-first">
-        <div class="flex flex-row gap-x-1 items-baseline">
+      <div class="order-last flex flex-grow flex-col sm:order-first">
+        <div class="flex flex-row items-baseline gap-x-1">
           <h2 class="text-lg font-bold dark:text-slate-100">
             <a
               class="hover:underline"
@@ -164,7 +164,7 @@
         </div>
       </div>
       <div
-        class="flex flex-col justify-center flex-shrink items-center sm:items-start space-y-1 order-first sm:order-last"
+        class="order-first flex flex-shrink flex-col items-center justify-center space-y-1 sm:order-last sm:items-start"
       >
         @if (view == View.List && project.icon_url) {
           <a
@@ -183,7 +183,7 @@
           </a>
         }
         <div
-          class="flex flex-row gap-x-1 items-center w-full justify-center sm:justify-start"
+          class="flex w-full flex-row items-center justify-center gap-x-1 sm:justify-start"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -191,7 +191,7 @@
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-4 h-4 text-gray-900 dark:text-slate-200"
+            class="h-4 w-4 text-gray-900 dark:text-slate-200"
           >
             <path
               stroke-linecap="round"
@@ -209,7 +209,7 @@
               <div class="flex flex-row">
                 <select
                   [(ngModel)]="selectedVersion"
-                  class="text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:text-slate-200 border border-gray-300 rounded-xl px-2 py-1"
+                  class="rounded-xl border border-gray-300 bg-white px-2 py-1 text-sm font-medium text-gray-700 dark:bg-slate-800 dark:text-slate-200"
                 >
                   @for (mod of versions; track mod) {
                     <option
@@ -229,7 +229,7 @@
           }
         </div>
         <p
-          class="text-sm text-gray-700 dark:text-slate-200 flex gap-x-1 sm:w-48"
+          class="flex gap-x-1 text-sm text-gray-700 dark:text-slate-200 sm:w-48"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -237,7 +237,7 @@
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-4 h-4 text-gray-900 dark:text-slate-200"
+            class="h-4 w-4 text-gray-900 dark:text-slate-200"
           >
             <path
               stroke-linecap="round"
@@ -256,15 +256,15 @@
       </div>
     </div>
     @if (showChangelog) {
-      <div @slideInOut class="pt-2 overflow-y-clip">
-        <h4 class="font-bold text-2xl">Changelog:</h4>
+      <div @slideInOut class="overflow-y-clip pt-2">
+        <h4 class="text-2xl font-bold">Changelog:</h4>
         <markdown
           class="undo-preflight text-sm"
           [data]="selectedVersion.changelog"
         ></markdown>
         <button
           (click)="toggleChangelog()"
-          class="w-full h-7 hover:bg-gray-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex justify-center items-center rounded-md"
+          class="flex h-7 w-full items-center justify-center rounded-md hover:bg-gray-100 dark:bg-slate-800 dark:hover:bg-slate-700"
         >
           <svg
             [ngClass]="showChangelog ? '' : 'rotate-180'"
@@ -273,7 +273,7 @@
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="w-6 h-6"
+            class="h-6 w-6"
           >
             <path
               stroke-linecap="round"
@@ -290,9 +290,9 @@
 
 @if (view === View.Grid) {
   <div
-    class="p-4 w-full h-full items-center bg-white dark:bg-slate-800 dark:text-slate-200 rounded-lg shadow-md overflow-y-auto flex gap-x-5"
+    class="flex h-full w-full items-center gap-x-5 overflow-y-auto rounded-lg bg-white p-4 shadow-md dark:bg-slate-800 dark:text-slate-200"
   >
-    <div class="flex flex-col justify-center min-w-16 min-h-16">
+    <div class="min-w-16 min-h-16 flex flex-col justify-center">
       @if (project.icon_url) {
         <a
           href="https://modrinth.com/mod/{{ project.slug }}"
@@ -310,8 +310,8 @@
         </a>
       }
     </div>
-    <div class="flex flex-col flex-grow">
-      <div class="flex flex-row gap-x-1 items-baseline">
+    <div class="flex flex-grow flex-col">
+      <div class="flex flex-row items-baseline gap-x-1">
         <h2 class="text-lg font-bold">
           <a
             class="hover:underline"
@@ -322,14 +322,14 @@
           >
         </h2>
       </div>
-      <div class="flex flex-row gap-x-1 items-center w-full justify-start">
+      <div class="flex w-full flex-row items-center justify-start gap-x-1">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
           stroke-width="2"
           stroke="currentColor"
-          class="w-4 h-4 text-gray-900 dark:text-slate-200"
+          class="h-4 w-4 text-gray-900 dark:text-slate-200"
         >
           <path
             stroke-linecap="round"
@@ -347,7 +347,7 @@
             <div class="flex flex-row">
               <select
                 [(ngModel)]="selectedVersion"
-                class="text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-gray-300 rounded-xl px-2 py-1"
+                class="rounded-xl border border-gray-300 bg-white px-2 py-1 text-sm font-medium text-gray-700 dark:bg-slate-800 dark:text-slate-200"
               >
                 @for (mod of versions; track mod) {
                   <option
@@ -366,14 +366,14 @@
           </div>
         }
       </div>
-      <p class="text-sm text-gray-700 dark:text-slate-200 flex gap-x-1">
+      <p class="flex gap-x-1 text-sm text-gray-700 dark:text-slate-200">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
           stroke-width="2"
           stroke="currentColor"
-          class="w-4 h-4 text-gray-900 dark:text-slate-200"
+          class="h-4 w-4 text-gray-900 dark:text-slate-200"
         >
           <path
             stroke-linecap="round"

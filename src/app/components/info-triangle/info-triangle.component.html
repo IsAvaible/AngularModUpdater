@@ -1,10 +1,10 @@
 <button
   id="triangle"
-  class="h-24 w-24 bg-indigo-400 dark:bg-indigo-500 justify-end pr-4 pt-4 group flex relative aspect-square transition-colors"
+  class="group relative flex aspect-square h-24 w-24 justify-end bg-indigo-400 pr-4 pt-4 transition-colors dark:bg-indigo-500"
   [ngClass]="
     showInfoSection
       ? 'h-auto w-auto bg-indigo-500'
-      : 'hover:bg-indigo-500 focus:bg-indigo-500 dark:hover:bg-indigo-400 hover:cursor-pointer'
+      : 'hover:cursor-pointer hover:bg-indigo-500 focus:bg-indigo-500 dark:hover:bg-indigo-400'
   "
   (click)="toggleInfoSection()"
   [@openClose]="showInfoSectionTransition ? 'open' : 'closed'"
@@ -26,7 +26,7 @@
           ? ''
           : 'hidden'
       "
-      class="w-8 h-8 group-hover:inline text-white rotate-45 transition-opacity"
+      class="h-8 w-8 rotate-45 text-white transition-opacity group-hover:inline"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -57,7 +57,7 @@
           ? 'animate-pulse'
           : ''
       "
-      class="w-20 text-center opacity-100 group-hover:opacity-0 group-hover:hidden text-white rotate-45 -ml-7"
+      class="-ml-7 w-20 rotate-45 text-center text-white opacity-100 group-hover:hidden group-hover:opacity-0"
       aria-live="polite"
       role="status"
     >

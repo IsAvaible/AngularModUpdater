@@ -22,27 +22,27 @@
   }
 
   h1 {
-    @apply text-4xl font-bold my-2;
+    @apply my-2 text-4xl font-bold;
   }
 
   h2 {
-    @apply text-2xl font-bold my-3;
+    @apply my-3 text-2xl font-bold;
   }
 
   h3 {
-    @apply text-lg font-bold my-4;
+    @apply my-4 text-lg font-bold;
   }
 
   h4 {
-    @apply text-base font-bold my-5;
+    @apply my-5 text-base font-bold;
   }
 
   h5 {
-    @apply text-sm font-bold my-6;
+    @apply my-6 text-sm font-bold;
   }
 
   h6 {
-    @apply text-xs font-bold my-10;
+    @apply my-10 text-xs font-bold;
   }
 
   article,
@@ -50,7 +50,7 @@
   nav,
   section {
     h1 {
-      @apply text-2xl font-bold my-3;
+      @apply my-3 text-2xl font-bold;
     }
 
     article,
@@ -58,7 +58,7 @@
     nav,
     section {
       h1 {
-        @apply text-lg font-bold my-4;
+        @apply my-4 text-lg font-bold;
       }
 
       article,
@@ -66,7 +66,7 @@
       nav,
       section {
         h1 {
-          @apply text-base font-bold my-5;
+          @apply my-5 text-base font-bold;
         }
 
         article,
@@ -74,7 +74,7 @@
         nav,
         section {
           h1 {
-            @apply text-sm font-bold my-6;
+            @apply my-6 text-sm font-bold;
           }
 
           article,
@@ -82,7 +82,7 @@
           nav,
           section {
             h1 {
-              @apply text-xs font-bold my-10;
+              @apply my-10 text-xs font-bold;
             }
           }
         }
@@ -92,11 +92,11 @@
 
   ul,
   menu {
-    @apply list-disc my-1 pl-10;
+    @apply my-1 list-disc pl-10;
   }
 
   ol {
-    @apply list-decimal my-4 pl-10;
+    @apply my-4 list-decimal pl-10;
   }
 
   ul,
@@ -138,7 +138,7 @@
   }
 
   fieldset {
-    @apply my-0 mx-1 pt-0 px-1 pb-2;
+    @apply my-0 mx-1 px-1 pt-0 pb-2;
   }
 
   b,

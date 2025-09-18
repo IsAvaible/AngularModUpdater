@@ -1,11 +1,11 @@
 <div class="relative inline-block text-left">
-  <div class="flex gap-x-3 items-center">
+  <div class="flex items-center gap-x-3">
     <p class="text-lg">{{ label }}:</p>
     <button
       #button
       (click)="onClick()"
       type="button"
-      class="inline-flex w-24 justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 dark:text-slate-200 dark:bg-slate-900 dark:ring-slate-400 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:hover:bg-slate-900 dark:hover:ring-slate-200"
+      class="inline-flex w-24 justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-400 dark:hover:bg-slate-900 dark:hover:ring-slate-200"
       id="menu-button"
       aria-expanded="true"
       aria-haspopup="true"
@@ -30,7 +30,7 @@
     <div
       #dropdown
       [@openClose]=""
-      class="absolute right-0 w-24 flex flex-col z-50 mt-2 origin-top-right rounded-md bg-white dark:bg-slate-800 dark:ring-slate-300 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none max-h-44 overflow-y-auto"
+      class="absolute right-0 z-50 mt-2 flex max-h-44 w-24 origin-top-right flex-col overflow-y-auto rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-slate-800 dark:ring-slate-300"
       role="menu"
       aria-orientation="vertical"
       aria-labelledby="menu-button"
@@ -40,11 +40,11 @@
         <div role="none">
           <button
             (click)="onSelectItem(item)"
-            class="w-full block py-2 text-sm text-center"
+            class="block w-full py-2 text-center text-sm"
             [ngClass]="
               item == this.selectedItem
-                ? 'bg-gray-100 text-gray-900 dark:text-slate-100 dark:bg-slate-900'
-                : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-900'
+                ? 'bg-gray-100 text-gray-900 dark:bg-slate-900 dark:text-slate-100'
+                : 'text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-900'
             "
             role="menuitem"
             id="menu-item-0"
