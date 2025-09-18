@@ -1,0 +1,6 @@
+/* Allow line-wrapping in script preview */
+:host ::ng-deep .block pre {
+  white-space: pre-wrap;
+  max-height: 20rem;
+  scrollbar-width: none;
+}

@@ -32,6 +32,7 @@ import { LoadingIndicatorComponent } from './components/loading-indicator/loadin
 import { DropdownComponent } from './components/dropdown/dropdown.component';
 import { ModListComponent } from './components/mod-list/mod-list.component';
 import { ModInfoSectionComponent } from './components/mod-info-section/mod-info-section.component';
+import { ScriptGeneratorComponent } from './components/mod-panel/script-generator/script-generator.component';
 
 @NgModule({
   declarations: [
@@ -54,7 +55,8 @@ import { ModInfoSectionComponent } from './components/mod-info-section/mod-info-
     LoadingIndicatorComponent,
     DropdownComponent,
     ModListComponent,
-    ModInfoSectionComponent
+    ModInfoSectionComponent,
+    ScriptGeneratorComponent
   ],
   bootstrap: [AppComponent],
   imports: [

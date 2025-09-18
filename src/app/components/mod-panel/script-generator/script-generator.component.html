@@ -1,0 +1,121 @@
+<div
+  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-40"
+  (click)="close()"
+></div>
+<div
+  class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg w-full max-w-4xl z-50"
+  (click)="$event.stopPropagation()"
+>
+  <h2 class="text-2xl text-center font-bold mb-4 dark:text-slate-100">
+    Generate Cleanup & Update Script from Results
+  </h2>
+  <p>
+    This script will delete all the original files of the available mods, move
+    all unavailable mods to an "outdated" folder and download all updated
+    mods.<br /><br />
+    To execute this script you need to have either PowerShell (Windows) or Bash
+    (Mac & Linux) installed on your system.<br />
+    Copy the generated script below and run it in your terminal in the mods
+    folder, by right-clicking in the folder and selecting "Open in Terminal" or
+    similar.
+  </p>
+  <!-- Script Language Selection -->
+  <div class="flex flex-col mt-2 gap-y-1 items-center justify-center">
+    <label class="block text-lg font-medium dark:text-slate-300"
+      >Scripting Language</label
+    >
+    <div class="mt-2 flex gap-x-3">
+      <div class="flex items-center gap-x-1">
+        <input
+          name="language"
+          id="script-pws"
+          type="radio"
+          value="powershell"
+          [(ngModel)]="scriptType"
+          (ngModelChange)="generateScript()"
+          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+        />
+        <label
+          for="script-pws"
+          class="block text-sm text-gray-900 dark:text-slate-200"
+          >PowerShell (Windows)</label
+        >
+      </div>
+      <div class="flex items-center gap-x-1">
+        <input
+          name="language"
+          id="script-bash"
+          type="radio"
+          value="bash"
+          [(ngModel)]="scriptType"
+          (ngModelChange)="generateScript()"
+          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+        />
+        <label
+          for="script-bash"
+          class="block text-sm text-gray-900 dark:text-slate-200"
+          >Bash (Mac & Linux)</label
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Preview -->
+  <div class="mt-6">
+    <label class="block text-lg font-medium text-gray-700 dark:text-slate-300"
+      >Generated Script</label
+    >
+    <markdown
+      class="block"
+      clipboard
+      lineNumbers
+      [data]="'```' + scriptType + '\n' + generatedScript + '\n```'"
+      [clipboardButtonTemplate]="copyButtonTemplate"
+    />
+    <ng-template #copyButtonTemplate>
+      <button
+        class="gap-x-2 bg-white ring-1 ring-inset ring-gray-300 hover:ring-gray-200 dark:ring-slate-500 dark:hover:ring-slate-200 text-gray-800 dark:bg-slate-800 dark:text-slate-100 focus:ring-gray-400 focus:outline-none rounded-md flex items-center p-2 group"
+      >
+        <span class="font-medium relative">
+          <span class="group-active:invisible"> Copy Script </span>
+          <span
+            class="absolute left-0 top-0 w-full text-center hidden group-active:inline-block"
+          >
+            Copied!
+          </span>
+        </span>
+
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-4 h-4"
+        >
+          <path
+            class="group-active:hidden"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
+          />
+          <path
+            class="hidden group-active:inline-block"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75"
+          />
+        </svg>
+      </button>
+    </ng-template>
+  </div>
+
+  <div class="mt-8 flex justify-end">
+    <button
+      (click)="close()"
+      class="bg-white ring-1 font-semibold ring-inset transition-shadow ring-gray-300 hover:ring-gray-400 active:ring-gray-500 dark:ring-slate-500 dark:hover:ring-slate-200 text-gray-800 dark:bg-slate-800 dark:text-slate-100 focus:ring-gray-400 focus:outline-none rounded-md flex items-center px-3 py-1.5"
+    >
+      Close
+    </button>
+  </div>
+</div>

@@ -53,6 +53,7 @@ export interface Mod {
   versions: ExtendedVersion[];
   project: ModrinthProject;
   isDependency: boolean;
+  originalFile?: File;
 }
 export interface UnavailableMod {
   file: File;
@@ -93,6 +94,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   loader!: Loader;
   curseforgeSupport: boolean = false;
   availableModsView: View = window.innerWidth < 1200 ? View.Grid : View.List;
+  showScriptGenerator: boolean = false;
   filesSubscription!: Subscription;
   versionsSubscription!: Subscription;
   loaderSubscription!: Subscription;
@@ -365,7 +367,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       return false;
     }
 
-    this.addToAvailableMods(projectData, versionsData, versionData);
+    this.addToAvailableMods(projectData, versionsData, versionData, file);
     return true;
   }
 
@@ -477,7 +479,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       modrinthVersions[0].changelog = changelog;
     }
 
-    this.addToAvailableMods(modrinthProject, modrinthVersions, modrinthVersion);
+    this.addToAvailableMods(
+      modrinthProject,
+      modrinthVersions,
+      modrinthVersion,
+      file
+    );
     return true;
   }
 
@@ -531,7 +538,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.addToAvailableMods(
       modrinthProject,
       modrinthVersions,
-      installedVersion
+      installedVersion,
+      file
     );
     return true;
   }
@@ -613,12 +621,14 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @param projectData The project data
    * @param versionsData The versions data
    * @param versionData The version data
+   * @param original_file The original file that was processed (optional)
    * @private
    */
   private addToAvailableMods(
     projectData: ModrinthProject,
     versionsData: ModrinthVersion[],
-    versionData: ModrinthVersion
+    versionData: ModrinthVersion,
+    original_file?: File
   ) {
     const annotatedVersions = this.annotateVersionStatus(
       versionData,
@@ -629,7 +639,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       this.availableMods.push({
         versions: annotatedVersions,
         project: projectData,
-        isDependency: false
+        isDependency: false,
+        originalFile: original_file
       });
     }
   }
