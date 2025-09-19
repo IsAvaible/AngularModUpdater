@@ -48,7 +48,7 @@
           @transformInOutAnimation
         >
           <div class="info-section">
-            <h2 class="text-lg font-semibold">
+            <h2 id="modal-title" class="text-lg font-semibold">
               Minecraft Mod Updater and Loader Migrator
             </h2>
             <p>
@@ -56,9 +56,10 @@
               Minecraft Java Mods using the
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://modrinth.com/"
-                >Modrinth</a
+                >Modrinth<span class="sr-only">(opens in new tab)</span></a
               >
               API by simply uploading them as .jar files.
             </p>
@@ -109,48 +110,53 @@
               This tool was made with
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://angular.io/"
-                >Angular</a
+                >Angular<span class="sr-only">(opens in new tab)</span></a
               >
               and
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://tailwindcss.com/"
-                >Tailwind</a
+                >Tailwind<span class="sr-only">(opens in new tab)</span></a
               >
               using icons from
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://heroicons.com/"
-                >Heroicons</a
+                >Heroicons<span class="sr-only">(opens in new tab)</span></a
               >
               and
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://iconoir.com/"
-                >Iconoir</a
+                >Iconoir<span class="sr-only">(opens in new tab)</span></a
               >. The dropzone was created using the
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://www.npmjs.com/package/ngx-dropzone"
-                >ngx-dropzone library</a
+                >ngx-dropzone library<span class="sr-only"
+                  >(opens in new tab)</span
+                ></a
               >. The source code is available on
               <a
                 target="_blank"
+                rel="noopener"
                 referrerpolicy="no-referrer"
                 href="https://github.com/IsAvaible/AngularModUpdater"
-                >GitHub</a
+                >GitHub<span class="sr-only">(opens in new tab)</span></a
               >.
             </p>
-            <label
-              class="inline-flex cursor-pointer items-center"
-              (click)="toggleCurseforgeSupport($event)"
-            >
+            <label class="inline-flex cursor-pointer items-center">
               <input type="checkbox" [(ngModel)]="curseforgeSupport" />
               <span class="ml-3 text-sm text-gray-900 dark:text-gray-300"
                 >Enable Experimental Curseforge Support</span

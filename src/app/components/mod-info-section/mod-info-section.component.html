@@ -1,5 +1,5 @@
 <section>
-  <p class="mt-4 mb-2 text-lg font-bold dark:text-slate-100">{{ title }}</p>
+  <h3 class="mt-4 mb-2 text-lg font-bold dark:text-slate-100">{{ title }}</h3>
   <div
     class="flex w-full flex-row flex-wrap items-center justify-between gap-y-2 rounded-lg bg-white p-2 ring-2 dark:bg-slate-800"
     [ngClass]="{
@@ -17,14 +17,13 @@
           }"
         >
           {{ mod.file.name }} -
-          {{
-            mod.annotation ? mod.annotation.error.status : "file read failed"
-          }}
+          {{ mod.annotation?.error?.status ?? "file read failed" }}
         </p>
       } @else {
         <a
           [href]="mod.project.project_url"
           target="_blank"
+          rel="noopener"
           referrerpolicy="no-referrer"
           class="mr-2 rounded-lg px-2 py-1 text-sm font-medium text-gray-700"
           [ngClass]="{
@@ -35,6 +34,7 @@
           }"
         >
           {{ mod.project.title }}
+          <span class="sr-only">(opens in new tab)</span>
         </a>
       }
     }

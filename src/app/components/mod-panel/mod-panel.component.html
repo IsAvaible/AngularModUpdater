@@ -21,6 +21,7 @@
                 placeholder="Search results..."
                 class="h-10 w-48 rounded-md pl-10 pr-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-gray-400 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-500 dark:hover:ring-slate-200"
                 [(ngModel)]="searchTerm"
+                aria-label="Search results"
               />
               <svg
                 class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
@@ -29,6 +30,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -44,6 +46,11 @@
                 availableModsView =
                   availableModsView == View.List ? View.Grid : View.List
               "
+              [attr.aria-label]="
+                availableModsView === View.List
+                  ? 'Switch to grid view'
+                  : 'Switch to list view'
+              "
             >
               @switch (availableModsView) {
                 @case (View.List) {
@@ -54,6 +61,7 @@
                     stroke-width="1.5"
                     stroke="currentColor"
                     class="h-6 w-6"
+                    aria-hidden="true"
                   >
                     <path
                       stroke-linecap="round"
@@ -70,6 +78,7 @@
                     stroke-width="1.5"
                     stroke="currentColor"
                     class="h-6 w-6"
+                    aria-hidden="true"
                   >
                     <path
                       stroke-linecap="round"
@@ -110,6 +119,7 @@
               stroke-width="1.5"
               stroke="currentColor"
               class="h-5 w-5 dark:text-slate-100"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -132,6 +142,7 @@
               stroke-width="1.5"
               stroke="currentColor"
               class="h-5 w-5"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -160,6 +171,7 @@
               stroke-width="1.5"
               stroke="currentColor"
               class="h-5 w-5 dark:text-slate-100"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"

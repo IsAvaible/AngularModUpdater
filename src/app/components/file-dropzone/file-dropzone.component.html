@@ -3,6 +3,7 @@
   [multiple]="true"
   accept=".jar,.mrpack,.json,.zip"
   class="important max-w-[85vw] overflow-y-clip overflow-x-scroll dark:!border-slate-300 dark:!bg-slate-900 dark:!text-slate-200 xl:max-w-[75rem]"
+  aria-label="File drop zone for uploading mod files"
 >
   <ngx-dropzone-label class="p-4">Upload your mod(s)</ngx-dropzone-label>
   @for (f of files; track f) {

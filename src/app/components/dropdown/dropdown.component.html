@@ -1,14 +1,16 @@
 <div class="relative inline-block text-left">
   <div class="flex items-center gap-x-3">
-    <p class="text-lg">{{ label }}:</p>
+    <p [id]="label + '-label'" class="text-lg">{{ label }}:</p>
     <button
       #button
       (click)="onClick()"
       type="button"
       class="inline-flex w-24 justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-400 dark:hover:bg-slate-900 dark:hover:ring-slate-200"
-      id="menu-button"
-      aria-expanded="true"
+      [id]="label + '-button'"
+      [attr.aria-expanded]="showDropdown"
       aria-haspopup="true"
+      [attr.aria-controls]="showDropdown ? label + '-dropdown' : null"
+      [attr.aria-labelledby]="label + '-label' + ' ' + label + '-button'"
     >
       {{ selectedItem }}
       <svg
@@ -33,10 +35,11 @@
       class="absolute right-0 z-50 mt-2 flex max-h-44 w-24 origin-top-right flex-col overflow-y-auto rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-slate-800 dark:ring-slate-300"
       role="menu"
       aria-orientation="vertical"
-      aria-labelledby="menu-button"
+      [id]="label + '-dropdown'"
+      [attr.aria-labelledby]="label + '-button'"
       tabindex="-1"
     >
-      @for (item of items; track item) {
+      @for (item of items; track item; let i = $index) {
         <div role="none">
           <button
             (click)="onSelectItem(item)"
@@ -47,7 +50,8 @@
                 : 'text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-900'
             "
             role="menuitem"
-            id="menu-item-0"
+            [id]="'menu-item-' + i"
+            [attr.aria-selected]="item === selectedItem"
           >
             {{ item }}
           </button>

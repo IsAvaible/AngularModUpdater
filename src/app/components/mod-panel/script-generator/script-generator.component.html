@@ -5,8 +5,14 @@
 <div
   class="fixed top-1/2 left-1/2 z-50 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-8 shadow-lg dark:bg-slate-800"
   (click)="$event.stopPropagation()"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="script-generator-title"
 >
-  <h2 class="mb-4 text-center text-2xl font-bold dark:text-slate-100">
+  <h2
+    id="script-generator-title"
+    class="mb-4 text-center text-2xl font-bold dark:text-slate-100"
+  >
     Generate Cleanup & Update Script from Results
   </h2>
   <p>
@@ -74,6 +80,7 @@
     />
     <ng-template #copyButtonTemplate>
       <button
+        type="button"
         class="group flex items-center gap-x-2 rounded-md bg-white p-2 text-gray-800 ring-1 ring-inset ring-gray-300 hover:ring-gray-200 focus:outline-none focus:ring-gray-400 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-500 dark:hover:ring-slate-200"
       >
         <span class="relative font-medium">
@@ -92,6 +99,7 @@
           stroke-width="1.5"
           stroke="currentColor"
           class="h-4 w-4"
+          aria-hidden="true"
         >
           <path
             class="group-active:hidden"
@@ -113,6 +121,7 @@
   <div class="mt-8 flex justify-end">
     <button
       (click)="close()"
+      type="button"
       class="flex items-center rounded-md bg-white px-3 py-1.5 font-semibold text-gray-800 ring-1 ring-inset ring-gray-300 transition-shadow hover:ring-gray-400 focus:outline-none focus:ring-gray-400 active:ring-gray-500 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-500 dark:hover:ring-slate-200"
     >
       Close

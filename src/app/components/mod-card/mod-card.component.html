@@ -10,6 +10,7 @@
           <a
             href="https://modrinth.com/mod/{{ project.slug }}"
             target="_blank"
+            rel="noopener"
             referrerpolicy="no-referrer"
             class="hidden sm:block"
             title="Open the Projects Modrinth Page"
@@ -31,6 +32,7 @@
               class="hover:underline"
               href="{{ project.project_url }}"
               target="_blank"
+              rel="noopener"
               referrerpolicy="no-referrer"
               >{{ project.title }}</a
             >
@@ -42,6 +44,7 @@
               href="{{ authorUrl }}"
               title="{{ authorLinkTitle }}"
               target="_blank"
+              rel="noopener"
               referrerpolicy="no-referrer"
               >{{ selectedVersion.author_id }}</a
             >
@@ -107,6 +110,10 @@
             </span>
           </span>
           <button
+            [attr.aria-label]="
+              'Open changelog, published ' +
+              (selectedVersion.date_published | dateAgo)
+            "
             title="Open the Changelog"
             (click)="toggleChangelog()"
             class="flex items-center gap-x-1 hover:underline"
@@ -142,6 +149,7 @@
               stroke="currentColor"
               width="14"
               height="14"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -170,6 +178,7 @@
           <a
             href="https://modrinth.com/mod/{{ project.slug }}"
             target="_blank"
+            rel="noopener"
             referrerpolicy="no-referrer"
             class="aspect-square sm:hidden"
             title="Open the Projects Modrinth Page"
@@ -192,6 +201,7 @@
             stroke-width="2"
             stroke="currentColor"
             class="h-4 w-4 text-gray-900 dark:text-slate-200"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -210,6 +220,7 @@
                 <select
                   [(ngModel)]="selectedVersion"
                   class="rounded-xl border border-gray-300 bg-white px-2 py-1 text-sm font-medium text-gray-700 dark:bg-slate-800 dark:text-slate-200"
+                  aria-label="Select version"
                 >
                   @for (mod of versions; track mod) {
                     <option
@@ -238,6 +249,7 @@
             stroke-width="2"
             stroke="currentColor"
             class="h-4 w-4 text-gray-900 dark:text-slate-200"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -274,6 +286,7 @@
             stroke-width="1.5"
             stroke="currentColor"
             class="h-6 w-6"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -297,6 +310,7 @@
         <a
           href="https://modrinth.com/mod/{{ project.slug }}"
           target="_blank"
+          rel="noopener"
           referrerpolicy="no-referrer"
           class=""
           title="{{ project.title }}"
@@ -317,6 +331,7 @@
             class="hover:underline"
             href="https://modrinth.com/mod/{{ project.slug }}"
             target="_blank"
+            rel="noopener"
             referrerpolicy="no-referrer"
             >{{ project.title }}</a
           >
@@ -330,6 +345,7 @@
           stroke-width="2"
           stroke="currentColor"
           class="h-4 w-4 text-gray-900 dark:text-slate-200"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"
@@ -348,6 +364,7 @@
               <select
                 [(ngModel)]="selectedVersion"
                 class="rounded-xl border border-gray-300 bg-white px-2 py-1 text-sm font-medium text-gray-700 dark:bg-slate-800 dark:text-slate-200"
+                aria-label="Select version"
               >
                 @for (mod of versions; track mod) {
                   <option
@@ -374,6 +391,7 @@
           stroke-width="2"
           stroke="currentColor"
           class="h-4 w-4 text-gray-900 dark:text-slate-200"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"

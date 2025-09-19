@@ -12,9 +12,8 @@
   (@openClose.start)="animationStart($event)"
   tabindex="0"
   aria-controls="info-section"
-  attr.aria-expanded="{{ showInfoSection }}"
+  [attr.aria-expanded]="showInfoSection"
   aria-label="Information section toggle button"
-  role="button"
 >
   <!-- (i) icon that appears on hover -->
   @if (!showInfoSection) {
