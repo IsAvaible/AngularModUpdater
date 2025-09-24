@@ -5,7 +5,7 @@ Visit the latest deployment [here](https://mc-mod-updater.vercel.app/).
 
 ## Features
 
-Allows you to update or migrate your mods via simple drag and drop or file upload (.jar).
+Allows you to update or migrate your mods, modpacks, resource packs and shaders via simple drag and drop or file upload (.jar / .mrpack / .json / .zip).
 You may select the version and loader you want to search updates for or migrate to.
 Returns a list of all available version files of your mods and lets you download them.
 
