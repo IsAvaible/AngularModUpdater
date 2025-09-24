@@ -1,0 +1,64 @@
+# See https://docs.docker.com/engine/reference/builder/#dockerignore-file
+# Based on a template from https://docs.docker.com/guides/angular/containerize/#step-3-configure-the-dockerignore-file
+
+# ================================
+# Node and build output
+# ================================
+node_modules
+dist
+out-tsc
+.angular
+.cache
+.tmp
+
+# ================================
+# Testing & Coverage
+# ================================
+coverage
+jest
+cypress
+cypress/screenshots
+cypress/videos
+reports
+playwright-report
+.vite
+.vitepress
+
+# ================================
+# Environment & log files
+# ================================
+*.env*
+!*.env.production
+*.log
+*.tsbuildinfo
+
+# ================================
+# IDE & OS-specific files
+# ================================
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+
+# ================================
+# Version control & CI files
+# ================================
+.git
+.gitignore
+
+# ================================
+# Docker & local orchestration
+# ================================
+Dockerfile
+Dockerfile.*
+.dockerignore
+docker-compose.yml
+docker-compose*.yml
+
+# ================================
+# Miscellaneous
+# ================================
+*.bak
+*.old
+*.tmp
