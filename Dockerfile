@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
 
 # Build the application
-RUN npm run build --prod
+RUN npm run build
 
 
 # =========================================
