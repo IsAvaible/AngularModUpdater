@@ -399,12 +399,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
 
     // Check if the mod has files for the selected loader
-    const targetVersionsLoader = mod.latestFilesIndexes.filter(
-      (f) =>
+    const targetVersionsLoader = mod.latestFilesIndexes.filter((f) => {
+      const loader =
         this.interoperability.convertCurseforgeLoaderToModrinthLoader(
           f.modLoader
-        ) === this.loader
-    );
+        );
+      return loader !== null && this.getValidLoaders().includes(loader);
+    });
     if (targetVersionsLoader.length == 0) {
       if (
         this.invalidLoaderMods.some((m) => m.file == file) ||
