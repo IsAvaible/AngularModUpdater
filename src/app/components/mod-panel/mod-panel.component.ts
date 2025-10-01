@@ -1210,8 +1210,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           let total = files.length;
 
           let promises = files.map((file) =>
-            fetch(file.url)
+            fetch(file.url, { redirect: 'follow' })
               .then(async (r) => {
+                if (!r.ok) {
+                  throw new Error();
+                }
                 zip.file(file.filename, await r.blob());
                 completed++;
                 Swal.update({
