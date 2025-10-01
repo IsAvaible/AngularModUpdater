@@ -13,11 +13,7 @@ import {
   Status,
   VersionType
 } from '../modrinth/types.modrinth';
-import {
-  GitHubModInfo,
-  GitHubProject,
-  GitHubVersion
-} from '../github/types.github';
+import { GitHubModInfo, GitHubVersion } from '../github/types.github';
 import { Loader } from '../../services/loader.service';
 
 export class Interoperability {
@@ -204,6 +200,8 @@ export class Interoperability {
         return Loader.forge;
       case ModLoaderType.Quilt:
         return Loader.quilt;
+      case ModLoaderType.NeoForge:
+        return Loader.neoforge;
       default:
         return null;
     }

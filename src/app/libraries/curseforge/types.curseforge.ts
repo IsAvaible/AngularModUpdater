@@ -167,7 +167,8 @@ export enum ModLoaderType {
   Cauldron = 2,
   LiteLoader = 3,
   Fabric = 4,
-  Quilt = 5
+  Quilt = 5,
+  NeoForge = 6
 }
 
 export enum FileReleaseType {

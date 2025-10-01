@@ -401,9 +401,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     // Check if the mod has files for the selected loader
     const targetVersionsLoader = mod.latestFilesIndexes.filter(
       (f) =>
-        (this.interoperability.convertCurseforgeLoaderToModrinthLoader(
+        this.interoperability.convertCurseforgeLoaderToModrinthLoader(
           f.modLoader
-        ) || this.loader) == this.loader
+        ) === this.loader
     );
     if (targetVersionsLoader.length == 0) {
       if (
