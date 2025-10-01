@@ -23,33 +23,42 @@ The easiest way to get started is to use the public version hosted at **[mc-mod-
 
 This version is automatically built and deployed by Vercel directly from the `main` branch of this repository. You can view the [deployment history here](https://github.com/IsAvaible/AngularModUpdater/deployments/Production).
 
----
-
 ### 2\. Self-Hosting with Docker
 
 You can also run the application on your own machine using Docker.
 
 **Prerequisites:**
 
-- [Git](https://git-scm.com/)
+- [Git](https://git-scm.com/) (only required for building from source)
 - [Docker](https://www.docker.com/products/docker-desktop/)
 
-**Instructions:**
+#### Option A: Build from Source
+
+Follow these steps to build the Docker image yourself.
 
 1.  **Clone the repository:**
-
     ```bash
     git clone https://github.com/IsAvaible/AngularModUpdater.git
     cd AngularModUpdater
     ```
-
 2.  **Build & run the Docker container:**
     ```bash
     docker rm minecraft-mod-updater
     docker build -t minecraft-mod-updater .
     docker run --name minecraft-mod-updater -p 8080:8080 --restart unless-stopped minecraft-mod-updater
     ```
-    The application will be accessible at `http://localhost:8080`. The container will be called `minecraft-mod-updater` and will restart automatically unless stopped.
+
+#### Option B: Use the Pre-built Image
+
+For a faster setup, you can pull and run the pre-built image from the container registry to skip the manual build step.
+
+```bash
+docker rm minecraft-mod-updater
+docker pull ghcr.io/isavaible/angularmodupdater:main
+docker run --name minecraft-mod-updater -p 8080:8080 --restart unless-stopped ghcr.io/isavaible/angularmodupdater:main
+```
+
+After using either method, the application will be accessible at `http://localhost:8080`. The container will be called `minecraft-mod-updater` and will restart automatically unless stopped.
 
 ## Contributors
 
