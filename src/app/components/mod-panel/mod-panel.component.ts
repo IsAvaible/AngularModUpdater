@@ -1223,7 +1223,6 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                 Swal.showLoading();
               })
               .catch(async () => {
-                completed++;
                 console.error(
                   `Error downloading file ${file.filename}. Retrying with Vercel function.`
                 );
@@ -1231,6 +1230,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                   const response = await fetch(
                     `/api/proxy-file?url=${encodeURIComponent(file.url)}`
                   );
+                  completed++;
+                  Swal.update({
+                    html: `Progress: <b>${Math.round((completed / total) * 100)}%</b>`
+                  });
                   if (!response.ok) {
                     throw new Error();
                   }
