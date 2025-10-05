@@ -7,7 +7,7 @@ import {
   Output,
   SimpleChanges
 } from '@angular/core';
-import { Mod } from '../mod-panel.component';
+import { Mod, VersionStatus } from '../mod-panel.component';
 
 @Component({
   selector: 'app-script-generator',
@@ -43,10 +43,30 @@ export class ScriptGeneratorComponent implements OnInit, OnChanges {
   }
 
   createScript() {
-    const originalFileNames = this.mods
+    // Separate mods into those that are up-to-date and those that need updating.
+    const modsToUpdate = this.mods.filter(
+      (mod) =>
+        mod.versions.find((v) => v.selected)?.versionStatus !==
+        VersionStatus.Installed
+    );
+    const installedUpToDateMods = this.mods.filter(
+      (mod) =>
+        mod.versions.find((v) => v.selected)?.versionStatus ===
+        VersionStatus.Installed
+    );
+
+    // Get filenames of mods that are already up-to-date and should be left untouched.
+    const upToDateFilenames = installedUpToDateMods
       .map((mod) => mod.originalFile?.name)
-      .filter((fn) => fn && fn.trim().length > 0);
-    const updatedFiles = this.mods
+      .filter((fn): fn is string => !!fn && fn.trim().length > 0);
+
+    // From the mods that need updating, get the list of old files to delete.
+    const filesToDeleteNames = modsToUpdate
+      .map((mod) => mod.originalFile?.name)
+      .filter((fn): fn is string => !!fn && fn.trim().length > 0);
+
+    // From the mods that need updating, get the list of new files to download.
+    const filesToDownload = modsToUpdate
       .map(
         (mod) =>
           mod.versions
@@ -55,25 +75,34 @@ export class ScriptGeneratorComponent implements OnInit, OnChanges {
       )
       .flat();
 
-    if (this.scriptType === 'powershell') {
-      // File cleanup
-      const psFiles = originalFileNames.map((f) => `'${f}'`).join(',');
-      const filesToDelete =
-        originalFileNames.length > 0 ? `ri ${psFiles} -Force -EA 0` : '';
-      const cleanupScript = `$f=@(${psFiles}); New-Item outdated -Type d -Force >$null; gci -File|?{$_.Name -notin $f}|mi -Dest outdated; ${filesToDelete}`;
+    // This list contains all files the script should know about before downloading.
+    // Any other file in the directory is considered unknown and will be moved.
+    const allKnownCurrentFiles = [...upToDateFilenames, ...filesToDeleteNames];
 
-      // File downloads
+    if (this.scriptType === 'powershell') {
+      // Moves unknown files, then deletes outdated mod files.
+      const psKnownFiles = allKnownCurrentFiles.map((f) => `'${f}'`).join(',');
+      const psFilesToDelete = filesToDeleteNames.map((f) => `'${f}'`).join(',');
+
+      const moveUnknownScript = `$f=@(${psKnownFiles}); New-Item outdated -Type d -Force >$null; gci -File|?{$_.Name -notin $f}|mi -Dest outdated`;
+      const deleteOldFilesScript =
+        filesToDeleteNames.length > 0
+          ? `ri ${psFilesToDelete} -Force -EA 0`
+          : '';
+      const cleanupScript = [moveUnknownScript, deleteOldFilesScript]
+        .filter(Boolean)
+        .join('; ');
+
+      // Download necessary new files.
       let downloadCommands = '';
-      if (updatedFiles.length > 0) {
-        // Pass the file data as a JSON string to avoid complex escaping issues.
+      if (filesToDownload.length > 0) {
         const filesJson = JSON.stringify(
-          updatedFiles.map((file) => ({
+          filesToDownload.map((file) => ({
             url: file.url,
             filename: file.filename
           }))
         ).replace(/'/g, "''");
 
-        // PowerShell script to download files sequentially with a progress bar and error handling.
         // language=PowerShell
         const pwshScript = `
           $files = '${filesJson}' | ConvertFrom-Json;
@@ -97,17 +126,23 @@ export class ScriptGeneratorComponent implements OnInit, OnChanges {
 
       return [cleanupScript, downloadCommands].filter(Boolean).join('; ');
     } else {
-      // File cleanup
-      const bashFiles = originalFileNames.map((f) => `"${f}"`).join(' ');
-      const findExcludes = originalFileNames
+      // Moves unknown files, then deletes outdated mod files.
+      const findExcludes = allKnownCurrentFiles
         .map((f) => `! -name "${f}"`)
         .join(' ');
-      const filesToDelete =
-        originalFileNames.length > 0 ? `&& rm -f ${bashFiles}` : '';
-      const cleanupScript = `mkdir -p outdated && find . -maxdepth 1 -type f ${findExcludes} -exec mv -t outdated/ {} + ${filesToDelete}`;
+      const bashFilesToDelete = filesToDeleteNames
+        .map((f) => `"${f}"`)
+        .join(' ');
 
-      // Parallel File downloads
-      const downloadCommands = updatedFiles
+      const moveUnknownScript = `mkdir -p outdated && find . -maxdepth 1 -type f ${findExcludes} -exec mv -t outdated/ {} +`;
+      const deleteOldFilesScript =
+        filesToDeleteNames.length > 0 ? `rm -f ${bashFilesToDelete}` : '';
+      const cleanupScript = [moveUnknownScript, deleteOldFilesScript]
+        .filter(Boolean)
+        .join(' && ');
+
+      // Downloads necessary new files in parallel.
+      const downloadCommands = filesToDownload
         .map((file) => `curl -Lo "${file.filename}" "${file.url}"`)
         .join(' & ');
 
