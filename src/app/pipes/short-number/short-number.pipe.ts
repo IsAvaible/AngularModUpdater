@@ -11,7 +11,7 @@ export class ShortNumberPipe implements PipeTransform {
   transform(number: number, args?: any): any {
     if (isNaN(number)) return null; // will only work value is a number
     if (number === null) return null;
-    if (number === 0) return null;
+    if (number === 0) return 0;
     let abs = Math.abs(number);
     const rounder = Math.pow(10, 1);
     const isNegative = number < 0; // will also work for Negative numbers
