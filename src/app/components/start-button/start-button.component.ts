@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 @Component({
   selector: 'app-start-button',
@@ -7,5 +7,6 @@ import { Component, EventEmitter, Output } from '@angular/core';
   standalone: false
 })
 export class StartButtonComponent {
+  @Input() loading: boolean = false;
   @Output() notify = new EventEmitter();
 }

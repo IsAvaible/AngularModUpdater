@@ -1,5 +1,5 @@
 <div class="flex w-full flex-col items-center px-10">
-  <app-start-button (notify)="startUpdateMods()" />
+  <app-start-button [loading]="this.loading" (notify)="startUpdateMods()" />
 
   <div class="mt-4 flex w-full flex-col">
     <div class="w-full">

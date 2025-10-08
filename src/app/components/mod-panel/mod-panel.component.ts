@@ -99,8 +99,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   versionsSubscription!: Subscription;
   loaderSubscription!: Subscription;
   curseforgeSupscription!: Subscription;
-  private finishedSubscription!: Subscription;
-  private percentSubscription!: Subscription;
+  private finishedSubscription?: Subscription;
+  private percentSubscription?: Subscription;
 
   constructor() {}
 
@@ -195,6 +195,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.versionsSubscription.unsubscribe();
     this.loaderSubscription.unsubscribe();
     this.curseforgeSupscription.unsubscribe();
+    this.finishedSubscription?.unsubscribe();
+    this.percentSubscription?.unsubscribe();
   }
 
   /**
@@ -984,16 +986,18 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * Orchestrates the entire update process, including file processing and dependency fetching.
    */
   async startUpdateMods() {
+    this.loading = true;
+    this.loadingPercent = 0;
+
     const [anyToProcess, initialFinished$, initialPercent$] =
       await this.updateMods();
     if (!anyToProcess) {
+      this.loading = false;
       return;
     }
 
-    this.loadingPercent = 0;
-    this.loading = true;
-    if (this.finishedSubscription) this.finishedSubscription.unsubscribe();
-    if (this.percentSubscription) this.percentSubscription.unsubscribe();
+    this.finishedSubscription?.unsubscribe();
+    this.percentSubscription?.unsubscribe();
 
     // assuming an average of 1-2 dependencies per mod batch
     const dependencyProcessingWeight = 1.5 / this.files.length;
@@ -1014,7 +1018,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           const { progress$, finished$ } = this.processDependencies(mcVersion);
 
           // Switch from file progress to dependency progress
-          if (this.percentSubscription) this.percentSubscription.unsubscribe();
+          this.percentSubscription?.unsubscribe();
           this.percentSubscription = progress$.subscribe((depPercent) => {
             this.loadingPercent =
               fileProcessingWeight + depPercent * dependencyProcessingWeight;
@@ -1030,7 +1034,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => {
         this.loading = false;
-        if (this.percentSubscription) this.percentSubscription.unsubscribe();
+        this.percentSubscription?.unsubscribe();
       });
   }
 
