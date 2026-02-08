@@ -1,4 +1,8 @@
 export async function GET(request) {
+  return new Response("Vercel function file tunneling is currently disabled, due to quota limits.", {
+    status: 409
+  });
+
   try {
     // Get the file URL from query parameters
     const { searchParams } = new URL(request.url);

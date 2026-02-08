@@ -1231,6 +1231,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
                   `Error downloading file ${file.filename}. Retrying with Vercel function.`
                 );
                 try {
+                  // The Vercel function workaround is currently disabled. It was triggering quota limits, which risks
+                  // a full deployment pause which is VERY bad.
+                  throw new Error();
+
                   const response = await fetch(
                     `/api/proxy-file?url=${encodeURIComponent(file.url)}`
                   );
