@@ -303,15 +303,16 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         return false;
       }
 
+      // Currently always disabled due to CORS issues.
       // If Modrinth fails, and we have the file buffer, try Curseforge
-      if (fileBuffer) {
-        const curseforgeResult = await this.tryCurseforge(
-          fileBuffer,
-          file,
-          mcVersion
-        );
-        if (curseforgeResult) return true;
-      }
+      // if (fileBuffer) {
+      //   const curseforgeResult = await this.tryCurseforge(
+      //     fileBuffer,
+      //     file,
+      //     mcVersion
+      //   );
+      //   if (curseforgeResult) return true;
+      // }
 
       return false;
     } catch (error: any) {
