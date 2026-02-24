@@ -12,7 +12,7 @@ import {
   defaultIfEmpty,
   filter,
   firstValueFrom,
-  map,
+  map, mergeMap,
   Observable,
   of,
   share,
@@ -32,10 +32,9 @@ export class Modrinth extends BaseApiProvider {
   protected apiName = 'Modrinth';
   private static _instance: Modrinth;
 
-  public modrinthAPIUrl = 'https://api.modrinth.com/v2'; // Modrinth API Endpoint
-  public headers = {
+  protected readonly modrinthAPIUrl = 'https://api.modrinth.com/v2'; // Modrinth API Endpoint
+  protected readonly headers = {
     // Headers for the requests
-    'Access-Control-Allow-Origin': this.modrinthAPIUrl,
     'Content-Type': 'application/json',
     Accept: 'application/json'
   };
@@ -59,14 +58,14 @@ export class Modrinth extends BaseApiProvider {
   private getVersionBuffer = new Subject<string>();
   private getVersionBufferResolver = this.getVersionBuffer.pipe(
     bufferTime(this.bufferDelay),
-    switchMap((hashes) => this.getVersionsFromHashes(hashes)),
+    mergeMap((hashes) => this.getVersionsFromHashes(hashes)),
     share()
   );
 
   private getProjectBuffer = new Subject<string>();
   private getProjectBufferResolver = this.getProjectBuffer.pipe(
     bufferTime(this.bufferDelay),
-    switchMap((ids) => this.getProjects(ids)),
+    mergeMap((ids) => this.getProjects(ids)),
     share()
   );
 
@@ -89,10 +88,12 @@ export class Modrinth extends BaseApiProvider {
   }
 
   private parseProject(project: ModrinthProject): ModrinthProject {
-    project.published = new Date(project.published);
-    project.updated = new Date(project.updated);
-    if (project.approved != null) project.approved = new Date(project.approved);
-    return project;
+    return {
+      ...project,
+      published: new Date(project.published),
+      updated: new Date(project.updated),
+      approved: project.approved ? new Date(project.approved) : project.approved
+    };
   }
 
   private parseVersion(version: ModrinthVersion): ModrinthVersion {
@@ -111,11 +112,12 @@ export class Modrinth extends BaseApiProvider {
       return of({});
     }
 
-    let url = `${this.modrinthAPIUrl}/projects?ids=["${ids.join('","')}"]`;
+    let url = `${this.modrinthAPIUrl}/projects`;
+    const params = new HttpParams().set('ids', JSON.stringify(ids));
     return this.http
       .get<
         ModrinthProject[]
-      >(url, { headers: this.headers, observe: 'response' })
+      >(url, { headers: this.headers, params, observe: 'response' })
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
@@ -125,6 +127,7 @@ export class Modrinth extends BaseApiProvider {
           // Process the response body
           let projects = resp.body!;
           let result: { [hash: string]: ModrinthProject | AnnotatedError } = {};
+
           projects.forEach((project) => {
             result[project.id] = this.parseProject(project);
             if (!this.isAnnotatedError(result[project.id])) {
@@ -171,15 +174,15 @@ export class Modrinth extends BaseApiProvider {
     version: string,
     loaders: string[]
   ): Observable<ModrinthVersion[] | AnnotatedError> {
-    const url =
-      `${this.modrinthAPIUrl}/project/${id}/version?game_versions=["${version}"]` +
-      (loaders.length
-        ? `&loaders=["${loaders.map((loader) => loader.toLowerCase()).join('","')}"]`
-        : '');
+    const url = `${this.modrinthAPIUrl}/project/${id}/version`;
+    const params = new HttpParams()
+      .set('game_versions', JSON.stringify([version]))
+      .set('loaders', JSON.stringify(loaders.map((loader) => loader.toLowerCase())));
+
     return this.http
       .get<
         ModrinthVersion[]
-      >(url, { headers: this.headers, observe: 'response' })
+      >(url, { headers: this.headers, params, observe: 'response' })
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
@@ -210,11 +213,10 @@ export class Modrinth extends BaseApiProvider {
       .post<{ [hash: string]: ModrinthVersion | AnnotatedError }>(
         url,
         {
-          headers: this.headers,
           hashes: hashes,
           algorithm: 'sha1'
         },
-        { observe: 'response' }
+        { headers: this.headers, observe: 'response' }
       )
       .pipe(
         timeout(10000),
@@ -257,8 +259,9 @@ export class Modrinth extends BaseApiProvider {
     this.getVersionBuffer.next(hash);
 
     return this.getVersionBufferResolver.pipe(
-      filter((versions) => versions[hash] != undefined),
-      map((versions) => versions[hash]),
+      map(versions => versions[hash] ?? {
+        error: { message: 'Hash not found in batch response', status: 404 }
+      }),
       take(1)
     );
   }
@@ -358,11 +361,8 @@ export class Modrinth extends BaseApiProvider {
       versionId: json.versionId,
       dependencies: json.dependencies || [],
       game: json.game,
-      files: json.files.map((file: any) => ({
-        path: file.path,
-        hashes: file.hashes,
-        downloads: file.downloads,
-        env: file.env
+      files: json.files.map((file: Modpack["files"][number]) => ({
+        ...file
       }))
     };
 
