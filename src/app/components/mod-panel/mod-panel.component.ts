@@ -298,21 +298,28 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         return true;
       }
 
-      // If Curseforge support is not enabled return false
-      if (!this.curseforgeSupport) {
-        return false;
+      // If Modrinth fails, and we have the file buffer, try Curseforge
+      if (this.curseforgeSupport && fileBuffer) {
+        // Currently disabled due to CORS issues
+        // const curseforgeResult = await this.tryCurseforge(fileBuffer, file, mcVersion);
+        // if (curseforgeResult) return true;
       }
 
-      // Currently always disabled due to CORS issues.
-      // If Modrinth fails, and we have the file buffer, try Curseforge
-      // if (fileBuffer) {
-      //   const curseforgeResult = await this.tryCurseforge(
-      //     fileBuffer,
-      //     file,
-      //     mcVersion
-      //   );
-      //   if (curseforgeResult) return true;
-      // }
+      // If we reach this point, the mod wasn't successfully resolved.
+      // Check if tryModrinth (or tryCurseforge) already sorted it into a specific failure category.
+      const isAlreadyCategorized =
+        this.unavailableMods.some((m) => m.file === file) ||
+        this.invalidLoaderMods.some((m) => m.file === file);
+
+      if (!isAlreadyCategorized) {
+        this.unresolvedMods.push({
+          file,
+          slug: undefined,
+          annotation: {
+            error: { status: 404, message: 'Mod not found on any platform' }
+          }
+        });
+      }
 
       return false;
     } catch (error: any) {
@@ -793,7 +800,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     } else if (errorData.error.status !== 404) {
       this.handleRequestError(file);
     }
-    // Note: We don't add to unresolvedMods here - that's handled by the caller after all APIs are tried
+    // Note: We don't add to unresolvedMods here that's handled by the caller after all APIs are tried
   }
 
   /**
