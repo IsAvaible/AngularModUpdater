@@ -3,7 +3,7 @@
 # Stage 1: Build the Application
 # =========================================
 
-ARG NODE_VERSION=22-alpine3.21
+ARG NODE_VERSION=lts-alpine
 ARG NGINX_VERSION=mainline-alpine-perl
 
 FROM node:${NODE_VERSION} AS builder
