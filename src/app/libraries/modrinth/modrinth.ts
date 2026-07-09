@@ -175,9 +175,15 @@ export class Modrinth extends BaseApiProvider {
     loaders: string[]
   ): Observable<ModrinthVersion[] | AnnotatedError> {
     const url = `${this.modrinthAPIUrl}/project/${id}/version`;
-    const params = new HttpParams()
-      .set('game_versions', JSON.stringify([version]))
-      .set('loaders', JSON.stringify(loaders.map((loader) => loader.toLowerCase())));
+    let params = new HttpParams()
+      .set('game_versions', JSON.stringify([version]));
+
+    if (loaders && loaders.length > 0) {
+      params = params.set(
+        'loaders',
+        JSON.stringify(loaders.map((loader) => loader.toLowerCase()))
+      );
+    }
 
     return this.http
       .get<
