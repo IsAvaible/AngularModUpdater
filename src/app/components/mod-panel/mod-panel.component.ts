@@ -300,6 +300,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
       // If Curseforge support is not enabled return false
       if (!this.curseforgeSupport) {
+        if (
+          !this.invalidLoaderMods.some((m) => m.file.name === file.name) &&
+          !this.unavailableMods.some((m) => m.file.name === file.name)
+        ) {
+          this.unresolvedMods.push({
+            file,
+            slug: undefined,
+            annotation: {
+              error: {
+                status: 404,
+                message: 'Mod/Hash not found on Modrinth'
+              }
+            }
+          });
+        }
         return false;
       }
 
@@ -314,6 +329,21 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       //   if (curseforgeResult) return true;
       // }
 
+      if (
+        !this.invalidLoaderMods.some((m) => m.file.name === file.name) &&
+        !this.unavailableMods.some((m) => m.file.name === file.name)
+      ) {
+        this.unresolvedMods.push({
+          file,
+          slug: undefined,
+          annotation: {
+            error: {
+              status: 404,
+              message: 'Mod/Hash not found on Modrinth or Curseforge'
+            }
+          }
+        });
+      }
       return false;
     } catch (error: any) {
       console.error(`Error processing file ${file.name}:`, error);
@@ -709,8 +739,8 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
     const uploadedMcVersion: string | null =
       installedVersion.game_versions[
-        installedVersion.game_versions.length - 1
-      ] ||
+      installedVersion.game_versions.length - 1
+        ] ||
       (installedVersion.dependencies
         ? installedVersion.dependencies['minecraft']
         : null);

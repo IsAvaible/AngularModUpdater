@@ -129,13 +129,29 @@ export class Modrinth extends BaseApiProvider {
           let result: { [hash: string]: ModrinthProject | AnnotatedError } = {};
 
           projects.forEach((project) => {
-            result[project.id] = this.parseProject(project);
-            if (!this.isAnnotatedError(result[project.id])) {
+            const parsed = this.parseProject(project);
+            if (!this.isAnnotatedError(parsed)) {
               // Add the project URL to the project object
-              (result[project.id] as ModrinthProject).project_url =
-                `https://modrinth.com/project/${project.id}`;
+              parsed.project_url = `https://modrinth.com/project/${project.id}`;
+            }
+            result[project.id] = parsed;
+            if (project.slug) {
+              result[project.slug] = parsed;
             }
           });
+
+          // Fill any requested ids/slugs that were not returned by the API
+          ids.forEach((id) => {
+            if (result[id] === undefined) {
+              result[id] = {
+                error: {
+                  message: `Project not found for id or slug: ${id}`,
+                  status: 404
+                }
+              } as AnnotatedError;
+            }
+          });
+
           return result;
         }),
         catchError(
@@ -154,11 +170,13 @@ export class Modrinth extends BaseApiProvider {
     this.getProjectBuffer.next(id);
 
     return this.getProjectBufferResolver.pipe(
-      filter((projects) => projects[id] != undefined),
-      map((projects) => projects[id]),
-      defaultIfEmpty({
-        error: { message: 'Project not found', status: 404 }
-      } as AnnotatedError),
+      filter((projects) => this.isAnnotatedError(projects) || (id in projects)),
+      map((projects) => {
+        if (this.isAnnotatedError(projects)) {
+          return projects; // Propagate the batch error
+        }
+        return projects[id];
+      }),
       take(1)
     );
   }
@@ -239,7 +257,7 @@ export class Modrinth extends BaseApiProvider {
             } else {
               versions[hash] = {
                 error: versions[hash] ?? {
-                  message: 'Unknown error',
+                  message: 'Hash not found',
                   status: 404
                 }
               } as unknown as AnnotatedError;
@@ -265,8 +283,12 @@ export class Modrinth extends BaseApiProvider {
     this.getVersionBuffer.next(hash);
 
     return this.getVersionBufferResolver.pipe(
-      map(versions => versions[hash] ?? {
-        error: { message: 'Hash not found in batch response', status: 404 }
+      filter((versions) => this.isAnnotatedError(versions) || (hash in versions)),
+      map((versions) => {
+        if (this.isAnnotatedError(versions)) {
+          return versions; // Propagate the batch error
+        }
+        return versions[hash];
       }),
       take(1)
     );
