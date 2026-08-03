@@ -115,13 +115,6 @@ export interface Modpack {
   }>;
 }
 
-export enum ProjectType {
-  MOD = 'mod',
-  MODPACK = 'modpack',
-  RESOURCEPACK = 'resourcepack',
-  SHADER = 'shader'
-}
-
 export enum IndexerSort {
   RELEVANCE = 'relevance',
   DOWNLOADS = 'downloads',

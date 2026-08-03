@@ -83,9 +83,14 @@ export abstract class RateLimitedApi {
 
     if (this._rateLimitTimer) {
       clearTimeout(this._rateLimitTimer);
+      this._rateLimitTimer = null;
+    }
+    const secondsUntilReset = this.getRateLimitSecondsUntilReset();
+    if (secondsUntilReset !== null && secondsUntilReset > 0) {
       this._rateLimitTimer = setTimeout(() => {
         this._rateLimit = null;
-      }, this.getRateLimitSecondsUntilReset()! * 1000);
+        this._rateLimitTimer = null;
+      }, secondsUntilReset * 1000);
     }
   }
 
@@ -174,7 +179,10 @@ export abstract class RateLimitedApi {
    * Show rate limit notification (override for custom UI)
    */
   protected async showRateLimitNotification(): Promise<void> {
-    const secondsUntilReset = this.getRateLimitSecondsUntilReset()!;
+    if (Swal.isVisible()) {
+      return;
+    }
+    const secondsUntilReset = this.getRateLimitSecondsUntilReset() ?? 60;
     let timerInterval: NodeJS.Timeout | null = null;
     await Swal.fire({
       position: 'top-start',

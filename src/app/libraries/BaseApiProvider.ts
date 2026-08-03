@@ -57,10 +57,19 @@ export abstract class BaseApiProvider extends RateLimitedApi {
 
         const handleError = (error: any): ObservableInput<T> => {
           if (this.isRetryableError(error) && attempt++ < maxRetries) {
+            let backoffMs = delayMs * Math.pow(2, attempt - 1);
+            if (this.isRateLimitError(error)) {
+              const resetSec = this.getRateLimitSecondsUntilReset();
+              if (resetSec && resetSec > 0) {
+                backoffMs = Math.max(backoffMs, resetSec * 1000);
+              }
+            }
+            backoffMs += Math.floor(Math.random() * 200);
+
             console.log(
-              `Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms`
+              `Retry attempt ${attempt}/${maxRetries} after ${Math.round(backoffMs)}ms`
             );
-            return timer(delayMs).pipe(
+            return timer(backoffMs).pipe(
               mergeMap(() => source.pipe(catchError(handleError)))
             );
           } else {

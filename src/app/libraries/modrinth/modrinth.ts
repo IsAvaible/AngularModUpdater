@@ -12,6 +12,7 @@ import {
   defaultIfEmpty,
   filter,
   firstValueFrom,
+  forkJoin,
   map, mergeMap,
   Observable,
   of,
@@ -53,11 +54,12 @@ export class Modrinth extends BaseApiProvider {
     };
   }
 
-  private bufferDelay = 2000;
+  private bufferDelay = 100;
 
   private getVersionBuffer = new Subject<string>();
   private getVersionBufferResolver = this.getVersionBuffer.pipe(
     bufferTime(this.bufferDelay),
+    filter((hashes) => hashes.length > 0),
     mergeMap((hashes) => this.getVersionsFromHashes(hashes)),
     share()
   );
@@ -65,6 +67,7 @@ export class Modrinth extends BaseApiProvider {
   private getProjectBuffer = new Subject<string>();
   private getProjectBufferResolver = this.getProjectBuffer.pipe(
     bufferTime(this.bufferDelay),
+    filter((ids) => ids.length > 0),
     mergeMap((ids) => this.getProjects(ids)),
     share()
   );
@@ -108,30 +111,42 @@ export class Modrinth extends BaseApiProvider {
   public getProjects(
     ids: string[]
   ): Observable<{ [hash: string]: ModrinthProject | AnnotatedError }> {
-    if (ids.length == 0) {
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length === 0) {
       return of({});
     }
 
+    if (uniqueIds.length > 100) {
+      const chunks: string[][] = [];
+      for (let i = 0; i < uniqueIds.length; i += 100) {
+        chunks.push(uniqueIds.slice(i, i + 100));
+      }
+      return forkJoin(chunks.map((chunk) => this.fetchProjectsChunk(chunk))).pipe(
+        map((results: any[]) => Object.assign({}, ...results))
+      );
+    }
+
+    return this.fetchProjectsChunk(uniqueIds);
+  }
+
+  private fetchProjectsChunk(
+    ids: string[]
+  ): Observable<{ [hash: string]: ModrinthProject | AnnotatedError }> {
     let url = `${this.modrinthAPIUrl}/projects`;
     const params = new HttpParams().set('ids', JSON.stringify(ids));
     return this.http
-      .get<
-        ModrinthProject[]
-      >(url, { headers: this.headers, params, observe: 'response' })
+      .get<ModrinthProject[]>(url, { headers: this.headers, params, observe: 'response' })
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
         map((resp) => {
-          // Adjust the rate limit based on the response headers
           this.trackRateLimit(resp.headers);
-          // Process the response body
           let projects = resp.body!;
           let result: { [hash: string]: ModrinthProject | AnnotatedError } = {};
 
           projects.forEach((project) => {
             const parsed = this.parseProject(project);
             if (!this.isAnnotatedError(parsed)) {
-              // Add the project URL to the project object
               parsed.project_url = `https://modrinth.com/project/${project.id}`;
             }
             result[project.id] = parsed;
@@ -140,7 +155,6 @@ export class Modrinth extends BaseApiProvider {
             }
           });
 
-          // Fill any requested ids/slugs that were not returned by the API
           ids.forEach((id) => {
             if (result[id] === undefined) {
               result[id] = {
@@ -154,11 +168,14 @@ export class Modrinth extends BaseApiProvider {
 
           return result;
         }),
-        catchError(
-          this.createErrorHandler<{
-            [hash: string]: ModrinthProject | AnnotatedError;
-          }>()
-        )
+        catchError((error) => {
+          const status = error?.status || 500;
+          const message = error?.message || 'Error fetching projects';
+          const errObj: AnnotatedError = { error: { message, status } };
+          const result: { [hash: string]: AnnotatedError } = {};
+          ids.forEach((id) => (result[id] = errObj));
+          return of(result);
+        })
       );
   }
 
@@ -170,13 +187,8 @@ export class Modrinth extends BaseApiProvider {
     this.getProjectBuffer.next(id);
 
     return this.getProjectBufferResolver.pipe(
-      filter((projects) => this.isAnnotatedError(projects) || (id in projects)),
-      map((projects) => {
-        if (this.isAnnotatedError(projects)) {
-          return projects; // Propagate the batch error
-        }
-        return projects[id];
-      }),
+      filter((projects) => id in projects),
+      map((projects) => projects[id]),
       take(1)
     );
   }
@@ -228,10 +240,27 @@ export class Modrinth extends BaseApiProvider {
   public getVersionsFromHashes(
     hashes: string[]
   ): Observable<{ [hash: string]: ModrinthVersion | AnnotatedError }> {
-    if (hashes.length == 0) {
+    const uniqueHashes = [...new Set(hashes)];
+    if (uniqueHashes.length === 0) {
       return of({});
     }
 
+    if (uniqueHashes.length > 100) {
+      const chunks: string[][] = [];
+      for (let i = 0; i < uniqueHashes.length; i += 100) {
+        chunks.push(uniqueHashes.slice(i, i + 100));
+      }
+      return forkJoin(chunks.map((chunk) => this.fetchVersionsFromHashesChunk(chunk))).pipe(
+        map((results: any[]) => Object.assign({}, ...results))
+      );
+    }
+
+    return this.fetchVersionsFromHashesChunk(uniqueHashes);
+  }
+
+  private fetchVersionsFromHashesChunk(
+    hashes: string[]
+  ): Observable<{ [hash: string]: ModrinthVersion | AnnotatedError }> {
     const url = `${this.modrinthAPIUrl}/version_files`;
     return this.http
       .post<{ [hash: string]: ModrinthVersion | AnnotatedError }>(
@@ -247,7 +276,6 @@ export class Modrinth extends BaseApiProvider {
         this.createRetryStrategy(3, 1000),
         map((resp) => {
           this.trackRateLimit(resp.headers);
-          // Process the response body
           let versions = resp.body!;
           for (const hash of hashes) {
             if (versions[hash] instanceof Object) {
@@ -265,11 +293,14 @@ export class Modrinth extends BaseApiProvider {
           }
           return versions;
         }),
-        catchError(
-          this.createErrorHandler<{
-            [hash: string]: ModrinthVersion | AnnotatedError;
-          }>()
-        )
+        catchError((error) => {
+          const status = error?.status || 500;
+          const message = error?.message || 'Error fetching version files';
+          const errObj: AnnotatedError = { error: { message, status } };
+          const result: { [hash: string]: AnnotatedError } = {};
+          hashes.forEach((hash) => (result[hash] = errObj));
+          return of(result);
+        })
       );
   }
 
@@ -283,13 +314,8 @@ export class Modrinth extends BaseApiProvider {
     this.getVersionBuffer.next(hash);
 
     return this.getVersionBufferResolver.pipe(
-      filter((versions) => this.isAnnotatedError(versions) || (hash in versions)),
-      map((versions) => {
-        if (this.isAnnotatedError(versions)) {
-          return versions; // Propagate the batch error
-        }
-        return versions[hash];
-      }),
+      filter((versions) => hash in versions),
+      map((versions) => versions[hash]),
       take(1)
     );
   }
@@ -404,7 +430,7 @@ export class Modrinth extends BaseApiProvider {
     const searchResult = await firstValueFrom(
       this.searchProject({
         query: modpack.name,
-        project_type: ProjectType.MODPACK
+        project_type: ProjectType.ModPack
       })
     );
 

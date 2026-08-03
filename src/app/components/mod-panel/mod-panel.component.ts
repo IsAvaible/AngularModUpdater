@@ -373,22 +373,25 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     const versionData = await this.loadVersionData(fileHash, file);
     if (!versionData) return false;
 
-    const projectData = await this.loadProjectData(
+    // Fetch project data and versions data in parallel
+    const projectDataPromise = this.loadProjectData(
       versionData.project_id,
       file
     );
-    if (!projectData) return false;
-
-    const ignoreLoader = ![ProjectType.Mod, ProjectType.ModPack].includes(
-      projectData.project_type
-    );
-
-    const versionsData = await this.loadVersionsData(
-      projectData.id,
+    const versionsDataPromise = this.loadVersionsData(
+      versionData.project_id,
       mcVersion.version,
-      ignoreLoader ? [] : this.getValidLoaders(),
+      this.getValidLoaders(),
       file
     );
+
+    const [projectData, versionsData] = await Promise.all([
+      projectDataPromise,
+      versionsDataPromise
+    ]);
+
+    if (!projectData) return false;
+
     if (versionsData == null || versionsData.length == 0) {
       if (versionsData != null) {
         this.unavailableMods.push({
@@ -718,6 +721,23 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Compares two Minecraft version strings numerically
+   * @returns 1 if v1 > v2, -1 if v1 < v2, 0 if v1 === v2
+   */
+  private compareMCVersions(v1: string, v2: string): number {
+    const p1 = v1.split('.').map((x) => parseInt(x, 10) || 0);
+    const p2 = v2.split('.').map((x) => parseInt(x, 10) || 0);
+    const len = Math.max(p1.length, p2.length);
+    for (let i = 0; i < len; i++) {
+      const n1 = p1[i] ?? 0;
+      const n2 = p2[i] ?? 0;
+      if (n1 > n2) return 1;
+      if (n1 < n2) return -1;
+    }
+    return 0;
+  }
+
+  /**
    * Annotates the versions with their status
    * @param installedVersion The installed version
    * @param targetVersions The target versions
@@ -738,17 +758,17 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     }
 
     const uploadedMcVersion: string | null =
-      installedVersion.game_versions[
-      installedVersion.game_versions.length - 1
-        ] ||
-      (installedVersion.dependencies
-        ? installedVersion.dependencies['minecraft']
-        : null);
+      installedVersion.game_versions && installedVersion.game_versions.length > 0
+        ? installedVersion.game_versions[installedVersion.game_versions.length - 1]
+        : null;
     return targetVersions.map((version) => {
       version.selected = version === targetVersions[0]; // Mark first version as selected
 
       // Check if the uploaded mods minecraft version is lower than the selected version
-      if (uploadedMcVersion == null || uploadedMcVersion > targetedMcVersion) {
+      if (
+        uploadedMcVersion == null ||
+        this.compareMCVersions(uploadedMcVersion, targetedMcVersion) > 0
+      ) {
         version.versionStatus = VersionStatus.Unspecified;
         return version;
       }
@@ -1105,19 +1125,33 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     let processedCount = 0;
     const totalDependencies = uniqueNewDependencyIds.length;
 
-    const dependencyProcessingObservables = uniqueNewDependencyIds.map(
-      (projectId) => {
-        return from(this.processSingleDependency(projectId, mcVersion)).pipe(
-          tap(() => {
+    // Bulk-fetch all dependency projects in a single batch request
+    const finished$ = from(
+      firstValueFrom(this.modrinth.getProjects(uniqueNewDependencyIds))
+    ).pipe(
+      concatMap((projectsMap) => {
+        if (this.modrinth.isAnnotatedError(projectsMap)) {
+          return of(true);
+        }
+        const dependencyObservables = uniqueNewDependencyIds.map((projectId) => {
+          const projectData = projectsMap[projectId];
+          if (!projectData || this.modrinth.isAnnotatedError(projectData)) {
             processedCount++;
             progress$.next(processedCount / totalDependencies);
-          })
-        );
-      }
-    );
-
-    const finished$ = forkJoin(dependencyProcessingObservables).pipe(
-      map(() => true), // forkJoin emits an array of results; map to a single boolean
+            return of(null);
+          }
+          return from(
+            this.processDependencyWithProject(projectData, mcVersion)
+          ).pipe(
+            tap(() => {
+              processedCount++;
+              progress$.next(processedCount / totalDependencies);
+            })
+          );
+        });
+        return forkJoin(dependencyObservables);
+      }),
+      map(() => true),
       tap(() => {
         if (!progress$.closed) {
           progress$.next(1);
@@ -1129,17 +1163,12 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     return { progress$: progress$.asObservable(), finished$ };
   }
 
-  private async processSingleDependency(
-    projectId: string,
+  private async processDependencyWithProject(
+    projectData: ModrinthProject,
     mcVersion: MinecraftVersion
   ) {
-    // Create a dummy file for error handling functions that require a File object
-    const dummyFile = new File([], `dependency: ${projectId}`);
+    const dummyFile = new File([], `dependency: ${projectData.id}`);
 
-    const projectData = await this.loadProjectData(projectId, dummyFile);
-    if (!projectData) return;
-
-    // Avoid adding if it's already there (race condition with parallel processing)
     if (this.availableMods.some((mod) => mod.project.id === projectData.id)) {
       return;
     }
@@ -1161,7 +1190,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       this.availableMods.push({
         versions: annotatedVersions,
         project: projectData,
-        isDependency: true // Mark as dependency
+        isDependency: true
       });
     } else if (versionsData?.length === 0) {
       this.unavailableMods.push({
