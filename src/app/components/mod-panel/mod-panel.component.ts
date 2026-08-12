@@ -373,24 +373,26 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     const versionData = await this.loadVersionData(fileHash, file);
     if (!versionData) return false;
 
-    // Fetch project data and versions data in parallel
-    const projectDataPromise = this.loadProjectData(
+    // Fetch project data first to determine project type and loader requirements
+    const projectData = await this.loadProjectData(
       versionData.project_id,
       file
     );
-    const versionsDataPromise = this.loadVersionsData(
+    if (!projectData) return false;
+
+    // Only filter by mod loader for mods and modpacks; resource packs/shaders don't use mod loaders
+    const validLoaders = [ProjectType.Mod, ProjectType.ModPack].includes(
+      projectData.project_type
+    )
+      ? this.getValidLoaders()
+      : [];
+
+    const versionsData = await this.loadVersionsData(
       versionData.project_id,
       mcVersion.version,
-      this.getValidLoaders(),
+      validLoaders,
       file
     );
-
-    const [projectData, versionsData] = await Promise.all([
-      projectDataPromise,
-      versionsDataPromise
-    ]);
-
-    if (!projectData) return false;
 
     if (versionsData == null || versionsData.length == 0) {
       if (versionsData != null) {
@@ -1173,10 +1175,17 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Only filter by mod loader for mods and modpacks; resource packs/shaders don't use mod loaders
+    const validLoaders = [ProjectType.Mod, ProjectType.ModPack].includes(
+      projectData.project_type
+    )
+      ? this.getValidLoaders()
+      : [];
+
     const versionsData = await this.loadVersionsData(
       projectData.id,
       mcVersion.version,
-      this.getValidLoaders(),
+      validLoaders,
       dummyFile
     );
 

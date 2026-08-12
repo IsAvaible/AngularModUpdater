@@ -12,6 +12,7 @@ import { InteroperabilityService } from '../../services/interoperability.service
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { of } from 'rxjs';
 
 describe('ModPanelComponent', () => {
   let component: ModPanelComponent;
@@ -43,4 +44,41 @@ describe('ModPanelComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should pass empty loaders list for ResourcePacks in tryModrinth', async () => {
+    const modrinthService = TestBed.inject(ModrinthService);
+    const mockFile = new File(['dummy'], 'resourcepack.zip');
+    const mockVersionData: any = { id: 'ver1', project_id: 'proj1' };
+    const mockProjectData: any = {
+      id: 'proj1',
+      slug: 'resourcepack-slug',
+      project_type: 'resourcepack',
+      loaders: []
+    };
+    const mockVersionsData: any[] = [
+      { id: 'ver2', game_versions: ['1.21.1'], loaders: ['minecraft'] }
+    ];
+
+    spyOn(modrinthService, 'getVersionFromHash').and.returnValue(
+      of(mockVersionData)
+    );
+    spyOn(modrinthService, 'getProject').and.returnValue(
+      of(mockProjectData)
+    );
+    const getVersionsSpy = spyOn(
+      modrinthService,
+      'getVersionsFromId'
+    ).and.returnValue(of(mockVersionsData));
+
+    const mcVersion = { version: '1.21.1', selected: true, supported: true };
+    const result = await (component as any).tryModrinth(
+      'dummyhash',
+      mockFile,
+      mcVersion
+    );
+
+    expect(result).toBeTrue();
+    expect(getVersionsSpy).toHaveBeenCalledWith('proj1', '1.21.1', []);
+  });
 });
+
