@@ -1,4 +1,4 @@
-import { NgModule, isDevMode, SecurityContext } from '@angular/core';
+import { NgModule, SecurityContext } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgxDropzoneModule } from 'ngx-dropzone';
@@ -22,7 +22,6 @@ import { OrderModule } from 'ngx-order-pipe';
 import { DateAgoPipe } from './pipes/date-ago/date-ago.pipe';
 import { ShortNumberPipe } from './pipes/short-number/short-number.pipe';
 import { LoaderSelectorComponent } from './components/loader-selector/loader-selector.component';
-import { ServiceWorkerModule } from '@angular/service-worker';
 import { InfoTriangleComponent } from './components/info-triangle/info-triangle.component';
 import { InfoSectionComponent } from './components/info-section/info-section.component';
 import { MarkdownModule } from 'ngx-markdown';
@@ -65,12 +64,6 @@ import { ScriptGeneratorComponent } from './components/mod-panel/script-generato
     NgxDropzoneModule,
     FormsModule,
     OrderModule,
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: !isDevMode(),
-      // Register the ServiceWorker as soon as the application is stable
-      // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000'
-    }),
     MarkdownModule.forRoot({
       loader: HttpClient,
       sanitize: SecurityContext.NONE

@@ -20,7 +20,6 @@
     "@angular/platform-browser": "~20.3.32",
     "@angular/platform-browser-dynamic": "~20.3.32",
     "@angular/router": "~20.3.32",
-    "@angular/service-worker": "~20.3.32",
     "@vercel/analytics": "^1.2.2",
     "@vercel/speed-insights": "^1.0.10",
     "clipboard": "^2.0.11",
