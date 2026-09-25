@@ -13,7 +13,8 @@ import {
   filter,
   firstValueFrom,
   forkJoin,
-  map, mergeMap,
+  map,
+  mergeMap,
   Observable,
   of,
   share,
@@ -37,7 +38,9 @@ export class Modrinth extends BaseApiProvider {
   protected readonly headers = {
     // Headers for the requests
     'Content-Type': 'application/json',
-    Accept: 'application/json'
+    Accept: 'application/json',
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache'
   };
 
   public static get Instance() {
@@ -121,9 +124,9 @@ export class Modrinth extends BaseApiProvider {
       for (let i = 0; i < uniqueIds.length; i += 100) {
         chunks.push(uniqueIds.slice(i, i + 100));
       }
-      return forkJoin(chunks.map((chunk) => this.fetchProjectsChunk(chunk))).pipe(
-        map((results: any[]) => Object.assign({}, ...results))
-      );
+      return forkJoin(
+        chunks.map((chunk) => this.fetchProjectsChunk(chunk))
+      ).pipe(map((results: any[]) => Object.assign({}, ...results)));
     }
 
     return this.fetchProjectsChunk(uniqueIds);
@@ -135,7 +138,11 @@ export class Modrinth extends BaseApiProvider {
     let url = `${this.modrinthAPIUrl}/projects`;
     const params = new HttpParams().set('ids', JSON.stringify(ids));
     return this.http
-      .get<ModrinthProject[]>(url, { headers: this.headers, params, observe: 'response' })
+      .get<ModrinthProject[]>(url, {
+        headers: this.headers,
+        params,
+        observe: 'response'
+      })
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
@@ -205,8 +212,10 @@ export class Modrinth extends BaseApiProvider {
     loaders: string[]
   ): Observable<ModrinthVersion[] | AnnotatedError> {
     const url = `${this.modrinthAPIUrl}/project/${id}/version`;
-    let params = new HttpParams()
-      .set('game_versions', JSON.stringify([version]));
+    let params = new HttpParams().set(
+      'game_versions',
+      JSON.stringify([version])
+    );
 
     if (loaders && loaders.length > 0) {
       params = params.set(
@@ -216,9 +225,11 @@ export class Modrinth extends BaseApiProvider {
     }
 
     return this.http
-      .get<
-        ModrinthVersion[]
-      >(url, { headers: this.headers, params, observe: 'response' })
+      .get<ModrinthVersion[]>(url, {
+        headers: this.headers,
+        params,
+        observe: 'response'
+      })
       .pipe(
         timeout(10000),
         this.createRetryStrategy(3, 1000),
@@ -250,9 +261,9 @@ export class Modrinth extends BaseApiProvider {
       for (let i = 0; i < uniqueHashes.length; i += 100) {
         chunks.push(uniqueHashes.slice(i, i + 100));
       }
-      return forkJoin(chunks.map((chunk) => this.fetchVersionsFromHashesChunk(chunk))).pipe(
-        map((results: any[]) => Object.assign({}, ...results))
-      );
+      return forkJoin(
+        chunks.map((chunk) => this.fetchVersionsFromHashesChunk(chunk))
+      ).pipe(map((results: any[]) => Object.assign({}, ...results)));
     }
 
     return this.fetchVersionsFromHashesChunk(uniqueHashes);
@@ -369,6 +380,7 @@ export class Modrinth extends BaseApiProvider {
     // Make the HTTP GET request with the constructed parameters
     return this.http
       .get<SearchResult>(`${this.modrinthAPIUrl}/search`, {
+        headers: this.headers,
         params: httpParams
       })
       .pipe(
@@ -415,7 +427,7 @@ export class Modrinth extends BaseApiProvider {
       versionId: json.versionId,
       dependencies: json.dependencies || [],
       game: json.game,
-      files: json.files.map((file: Modpack["files"][number]) => ({
+      files: json.files.map((file: Modpack['files'][number]) => ({
         ...file
       }))
     };
