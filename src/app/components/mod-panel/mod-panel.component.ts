@@ -727,8 +727,44 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    * @returns 1 if v1 > v2, -1 if v1 < v2, 0 if v1 === v2
    */
   private compareMCVersions(v1: string, v2: string): number {
+    if (v1 === v2) return 0;
     const p1 = v1.split('.').map((x) => parseInt(x, 10) || 0);
     const p2 = v2.split('.').map((x) => parseInt(x, 10) || 0);
+    const len = Math.max(p1.length, p2.length);
+    for (let i = 0; i < len; i++) {
+      const n1 = p1[i] ?? 0;
+      const n2 = p2[i] ?? 0;
+      if (n1 > n2) return 1;
+      if (n1 < n2) return -1;
+    }
+    // If numeric parts are identical, release versions are considered newer than pre-release/snapshot
+    const isPre1 = /[-_](pre|rc|snapshot|alpha|beta)/i.test(v1);
+    const isPre2 = /[-_](pre|rc|snapshot|alpha|beta)/i.test(v2);
+    if (isPre1 && !isPre2) return -1;
+    if (!isPre1 && isPre2) return 1;
+    return 0;
+  }
+
+  /**
+   * Compares two mod version strings by extracting numeric segments (e.g. "3.9.7", "0.161.2")
+   * @returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal/inconclusive
+   * @private
+   */
+  private compareModVersions(v1?: string, v2?: string): number {
+    if (!v1 || !v2) return 0;
+    if (v1 === v2) return 0;
+
+    const clean = (s: string) => {
+      let str = s.split('+')[0]; // e.g. "3.9.7+26.3-fabric" -> "3.9.7"
+      str = str.replace(/^(mc)?\d+(\.\d+)+[-_]/i, ''); // strip mc version prefix like "mc26.3-"
+      str = str.replace(/^v/i, '');
+      const match = str.match(/\d+(\.\d+)*/);
+      return match ? match[0].split('.').map((x) => parseInt(x, 10)) : [];
+    };
+
+    const p1 = clean(v1);
+    const p2 = clean(v2);
+
     const len = Math.max(p1.length, p2.length);
     for (let i = 0; i < len; i++) {
       const n1 = p1[i] ?? 0;
@@ -752,38 +788,94 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     targetedMcVersion: string
   ): ExtendedVersion[] {
     if (!installedVersion) {
-      return targetVersions.map((version) => {
-        version.selected = version === targetVersions[0];
+      return targetVersions.map((version, index) => {
+        version.selected = index === 0;
         version.versionStatus = VersionStatus.Unspecified;
         return version;
       });
     }
 
-    const uploadedMcVersion: string | null =
-      installedVersion.game_versions && installedVersion.game_versions.length > 0
-        ? installedVersion.game_versions[installedVersion.game_versions.length - 1]
-        : null;
-    return targetVersions.map((version) => {
-      version.selected = version === targetVersions[0]; // Mark first version as selected
+    const installedMcVersions: string[] = installedVersion.game_versions ?? [];
+    const alreadySupportsTarget =
+      installedMcVersions.includes(targetedMcVersion);
 
-      // Check if the uploaded mods minecraft version is lower than the selected version
-      if (
-        uploadedMcVersion == null ||
-        this.compareMCVersions(uploadedMcVersion, targetedMcVersion) > 0
-      ) {
-        version.versionStatus = VersionStatus.Unspecified;
-        return version;
-      }
+    // Find the highest Minecraft version supported by the installed file
+    const maxInstalledMcVersion = installedMcVersions.reduce<string | null>(
+      (highest, current) => {
+        if (!highest) return current;
+        return this.compareMCVersions(current, highest) > 0 ? current : highest;
+      },
+      null
+    );
 
+    const isMcUpgrade =
+      !alreadySupportsTarget &&
+      maxInstalledMcVersion != null &&
+      this.compareMCVersions(targetedMcVersion, maxInstalledMcVersion) > 0;
+
+    const isMcDowngrade =
+      !alreadySupportsTarget &&
+      maxInstalledMcVersion != null &&
+      this.compareMCVersions(targetedMcVersion, maxInstalledMcVersion) < 0;
+
+    return targetVersions.map((version, index) => {
+      version.selected = index === 0;
+
+      // Exact version / file ID match
       if (
         version.id === installedVersion.id ||
         version.id === installedVersion.versionId
       ) {
         version.versionStatus = VersionStatus.Installed;
-      } else if (version.date_published > installedVersion.date_published) {
-        version.versionStatus = VersionStatus.Updated;
-      } else {
+        return version;
+      }
+
+      // Minecraft version bump (e.g. installed on 26.2, target is 26.3)
+      if (isMcUpgrade) {
+        if (index === 0) {
+          // The primary/recommended version for the new Minecraft version is an update
+          version.versionStatus = VersionStatus.Updated;
+        } else {
+          const modComparison = this.compareModVersions(
+            version.version_number,
+            installedVersion.version_number
+          );
+          // If the mod version is greater or equal to installed, it's an update for the new MC version
+          version.versionStatus =
+            modComparison >= 0 ? VersionStatus.Updated : VersionStatus.Outdated;
+        }
+        return version;
+      }
+
+      // Minecraft version downgrade
+      if (isMcDowngrade) {
         version.versionStatus = VersionStatus.Outdated;
+        return version;
+      }
+
+      // Same Minecraft version: compare mod version first, then fallback to publication date
+      const modComparison = this.compareModVersions(
+        version.version_number,
+        installedVersion.version_number
+      );
+
+      if (modComparison > 0) {
+        version.versionStatus = VersionStatus.Updated;
+      } else if (modComparison < 0) {
+        version.versionStatus = VersionStatus.Outdated;
+      } else {
+        const targetDate = new Date(version.date_published).getTime();
+        const installedDate = new Date(
+          installedVersion.date_published
+        ).getTime();
+
+        if (targetDate > installedDate) {
+          version.versionStatus = VersionStatus.Updated;
+        } else if (targetDate < installedDate) {
+          version.versionStatus = VersionStatus.Outdated;
+        } else {
+          version.versionStatus = VersionStatus.Installed;
+        }
       }
       return version;
     });
@@ -1135,22 +1227,24 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         if (this.modrinth.isAnnotatedError(projectsMap)) {
           return of(true);
         }
-        const dependencyObservables = uniqueNewDependencyIds.map((projectId) => {
-          const projectData = projectsMap[projectId];
-          if (!projectData || this.modrinth.isAnnotatedError(projectData)) {
-            processedCount++;
-            progress$.next(processedCount / totalDependencies);
-            return of(null);
-          }
-          return from(
-            this.processDependencyWithProject(projectData, mcVersion)
-          ).pipe(
-            tap(() => {
+        const dependencyObservables = uniqueNewDependencyIds.map(
+          (projectId) => {
+            const projectData = projectsMap[projectId];
+            if (!projectData || this.modrinth.isAnnotatedError(projectData)) {
               processedCount++;
               progress$.next(processedCount / totalDependencies);
-            })
-          );
-        });
+              return of(null);
+            }
+            return from(
+              this.processDependencyWithProject(projectData, mcVersion)
+            ).pipe(
+              tap(() => {
+                processedCount++;
+                progress$.next(processedCount / totalDependencies);
+              })
+            );
+          }
+        );
         return forkJoin(dependencyObservables);
       }),
       map(() => true),
@@ -1215,11 +1309,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
    */
   downloadAll() {
     const files = this.availableMods
-      .map(
-        (mod) =>
-          mod.versions
-            .find((version) => version.selected)!
-            .files.find((f) => f.primary)!
+      .map((mod) =>
+        mod.versions
+          .find((version) => version.selected)!
+          .files.find((f) => f.primary)!
       )
       .flat();
     this.downloadMultiple(files);
@@ -1236,14 +1329,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       )
     );
 
-    const files = updatedMods.map(
-      (mod) =>
-        mod.versions
-          .find(
-            (version) =>
-              version.selected && version.versionStatus == VersionStatus.Updated
-          )!
-          .files.find((f) => f.primary)!
+    const files = updatedMods.map((mod) =>
+      mod.versions
+        .find(
+          (version) =>
+            version.selected && version.versionStatus == VersionStatus.Updated
+        )!
+        .files.find((f) => f.primary)!
     );
 
     if (files.length == 0) {
