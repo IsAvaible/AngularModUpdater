@@ -21,19 +21,33 @@ export abstract class BaseApiProvider extends RateLimitedApi {
    * @param object The object to check
    */
   public isAnnotatedError(object: any): object is AnnotatedError {
-    return object && !!(object as AnnotatedError).error;
+    return Boolean(
+      object &&
+      typeof object === 'object' &&
+      'error' in object &&
+      object.error != null
+    );
   }
 
   /**
    * Determines if an HTTP error should be retried
    */
-  private isRetryableError(error: any): boolean {
+  protected isRetryableError(error: any): boolean {
+    if (!error) {
+      return false;
+    }
+
     // Retry on transient errors like network issues or rate limits
     if (this.isRateLimitError(error)) {
       return true;
     }
 
-    // Retry on server errors (5xx) and network errors
+    // Retry on RxJS TimeoutError
+    if (error.name === 'TimeoutError') {
+      return true;
+    }
+
+    // Retry on server errors (5xx) and network errors (status 0)
     if (error.status >= 500 || error.status === 0) {
       return true;
     }
@@ -59,9 +73,14 @@ export abstract class BaseApiProvider extends RateLimitedApi {
           if (this.isRetryableError(error) && attempt++ < maxRetries) {
             let backoffMs = delayMs * Math.pow(2, attempt - 1);
             if (this.isRateLimitError(error)) {
+              this.trackRateLimit(error?.headers);
               const resetSec = this.getRateLimitSecondsUntilReset();
               if (resetSec && resetSec > 0) {
-                backoffMs = Math.max(backoffMs, resetSec * 1000);
+                // Cap the backoff wait at 60 seconds during retries
+                backoffMs = Math.min(
+                  60000,
+                  Math.max(backoffMs, resetSec * 1000)
+                );
               }
             }
             backoffMs += Math.floor(Math.random() * 200);
@@ -84,6 +103,34 @@ export abstract class BaseApiProvider extends RateLimitedApi {
   }
 
   /**
+   * Creates a batch error handler that records rate limits (if applicable) and maps
+   * all requested keys to an AnnotatedError.
+   */
+  protected createBatchErrorHandler<K extends string | number, V>(
+    keys: K[],
+    defaultMessage: string
+  ) {
+    return (error: any): Observable<{ [key in K]: V | AnnotatedError }> => {
+      if (this.isRateLimitError(error)) {
+        this.recordRateLimitAndNotify(error);
+      }
+      const status =
+        typeof error?.status === 'number'
+          ? error.status
+          : error?.name === 'TimeoutError'
+            ? 408
+            : 500;
+      const message = error?.message || defaultMessage;
+      const errObj: AnnotatedError = { error: { message, status } };
+      const result: { [key in K]: V | AnnotatedError } = {} as any;
+      keys.forEach((key) => {
+        result[key] = errObj;
+      });
+      return of(result);
+    };
+  }
+
+  /**
    * Create an error handler for API calls to handle rate limits and other errors.
    */
   protected createErrorHandler<T>() {
@@ -92,8 +139,19 @@ export abstract class BaseApiProvider extends RateLimitedApi {
         return this.handleRateLimitExceeded(error);
       }
 
-      // Handle other errors
-      return of({ error } as T);
+      // Normalize into AnnotatedError structure
+      const annotated: AnnotatedError = {
+        error: {
+          message: error?.message || error?.statusText || 'Request failed',
+          status:
+            typeof error?.status === 'number'
+              ? error.status
+              : error?.name === 'TimeoutError'
+                ? 408
+                : 500
+        }
+      };
+      return of(annotated as unknown as T);
     };
   }
 }

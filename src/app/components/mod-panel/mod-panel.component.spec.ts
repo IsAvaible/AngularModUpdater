@@ -228,4 +228,111 @@ describe('ModPanelComponent', () => {
       expect(annotated[0].selected).toBeTrue();
     });
   });
+
+  describe('handleRequestError and startUpdateMods resilience', () => {
+    it('should clear transientErrorFiles when removePreviousErrors is called on successful fallback', () => {
+      const file = new File(['dummy'], 'fallback-mod.jar');
+      component.handleRequestError(file);
+      expect(
+        (component as any).transientErrorFiles.has('fallback-mod.jar')
+      ).toBeTrue();
+
+      (component as any).removePreviousErrors(file);
+      expect(
+        (component as any).transientErrorFiles.has('fallback-mod.jar')
+      ).toBeFalse();
+    });
+
+    it('should retain transient error status code in unresolvedMods instead of generic 404 when modrinth fails', async () => {
+      const file = new File(['dummy-data'], 'failing-mod.jar');
+      const modrinthService = TestBed.inject(ModrinthService);
+      spyOn(modrinthService, 'getVersionFromHash').and.returnValue(
+        of({ error: { message: 'Server down', status: 503 } })
+      );
+
+      await component.processFile(file, {
+        version: '1.21.1',
+        selected: true,
+        type: 'release'
+      });
+
+      expect(component.unresolvedMods.length).toBe(1);
+      expect(component.unresolvedMods[0].file.name).toBe('failing-mod.jar');
+      expect(component.unresolvedMods[0].annotation?.error?.status).toBe(503);
+      expect(component.unresolvedMods[0].annotation?.error?.message).toBe(
+        'Server down'
+      );
+    });
+
+    it('should not remove unrelated entries from processedFilesNames when handleRequestError is called for an unprocessed file', () => {
+      component.processedFilesNames = [
+        'already-processed-1.jar',
+        'already-processed-2.jar'
+      ];
+      const failedFile = new File(['dummy'], 'failed-mod.jar');
+      component.toProcess = [failedFile];
+
+      component.handleRequestError(failedFile);
+
+      expect(component.processedFilesNames).toEqual([
+        'already-processed-1.jar',
+        'already-processed-2.jar'
+      ]);
+      expect(component.toProcess.length).toBe(0);
+    });
+
+    it('should keep loadingPercent within [0, 1] and set loading to false when processing a single file', (done) => {
+      const modrinthService = TestBed.inject(ModrinthService);
+      const mockFile = new File(['dummy-content'], 'single-mod.jar');
+      component.files = [mockFile];
+      component.mcVersions = [
+        { version: '1.21.1', selected: true, type: 'release' }
+      ];
+
+      spyOn(modrinthService, 'getVersionFromHash').and.returnValue(
+        of({
+          id: 'v1',
+          project_id: 'p1',
+          version_number: '1.0.0',
+          game_versions: ['1.21.1'],
+          date_published: new Date(),
+          files: [],
+          dependencies: []
+        } as any)
+      );
+      spyOn(modrinthService, 'getProject').and.returnValue(
+        of({
+          id: 'p1',
+          slug: 'single-mod',
+          title: 'Single Mod',
+          project_type: 'mod',
+          loaders: ['fabric']
+        } as any)
+      );
+      spyOn(modrinthService, 'getVersionsFromId').and.returnValue(
+        of([
+          {
+            id: 'v1',
+            project_id: 'p1',
+            version_number: '1.0.0',
+            game_versions: ['1.21.1'],
+            date_published: new Date(),
+            files: [],
+            dependencies: []
+          } as any
+        ])
+      );
+
+      component.startUpdateMods().then(() => {
+        expect(component.loadingPercent).toBeGreaterThanOrEqual(0);
+        expect(component.loadingPercent).toBeLessThanOrEqual(1);
+
+        setTimeout(() => {
+          expect(component.loading).toBeFalse();
+          expect(component.availableMods.length).toBe(1);
+          done();
+        }, 350);
+      });
+    });
+  });
 });

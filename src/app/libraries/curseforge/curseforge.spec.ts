@@ -1,8 +1,16 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting
+} from '@angular/common/http/testing';
 import { CurseforgeService } from '../../services/curseforge.service';
-import { CurseforgeMod, CurseforgeFile, FileReleaseType } from './types.curseforge';
+import {
+  CurseforgeMod,
+  CurseforgeFile,
+  FileReleaseType
+} from './types.curseforge';
+import { firstValueFrom } from 'rxjs';
 
 describe('CurseforgeService (Curseforge API)', () => {
   let httpMock: HttpTestingController;
@@ -31,8 +39,22 @@ describe('CurseforgeService (Curseforge API)', () => {
     it('should query multiple mods by ID using POST', (done) => {
       const service = TestBed.inject(CurseforgeService);
       const mockMods: Partial<CurseforgeMod>[] = [
-        { id: 101, name: 'Mod 101', slug: 'mod-101', dateCreated: new Date(), dateModified: new Date(), dateReleased: new Date() },
-        { id: 102, name: 'Mod 102', slug: 'mod-102', dateCreated: new Date(), dateModified: new Date(), dateReleased: new Date() }
+        {
+          id: 101,
+          name: 'Mod 101',
+          slug: 'mod-101',
+          dateCreated: new Date(),
+          dateModified: new Date(),
+          dateReleased: new Date()
+        },
+        {
+          id: 102,
+          name: 'Mod 102',
+          slug: 'mod-102',
+          dateCreated: new Date(),
+          dateModified: new Date(),
+          dateReleased: new Date()
+        }
       ];
 
       service.getMods([101, 102]).subscribe((result) => {
@@ -54,14 +76,28 @@ describe('CurseforgeService (Curseforge API)', () => {
     it('should coalesce multiple getMod requests into a single batch query within configured delay', fakeAsync(() => {
       const service = TestBed.inject(CurseforgeService);
       let res1: any, res2: any;
-      service.getMod(101).subscribe(val => res1 = val);
-      service.getMod(102).subscribe(val => res2 = val);
+      service.getMod(101).subscribe((val) => (res1 = val));
+      service.getMod(102).subscribe((val) => (res2 = val));
 
       tick(service.bufferDelay);
 
       const mockMods: Partial<CurseforgeMod>[] = [
-        { id: 101, name: 'Mod 101', slug: 'mod-101', dateCreated: new Date(), dateModified: new Date(), dateReleased: new Date() },
-        { id: 102, name: 'Mod 102', slug: 'mod-102', dateCreated: new Date(), dateModified: new Date(), dateReleased: new Date() }
+        {
+          id: 101,
+          name: 'Mod 101',
+          slug: 'mod-101',
+          dateCreated: new Date(),
+          dateModified: new Date(),
+          dateReleased: new Date()
+        },
+        {
+          id: 102,
+          name: 'Mod 102',
+          slug: 'mod-102',
+          dateCreated: new Date(),
+          dateModified: new Date(),
+          dateReleased: new Date()
+        }
       ];
 
       const req = httpMock.expectOne((r) => r.url.endsWith('/v1/mods'));
@@ -70,20 +106,65 @@ describe('CurseforgeService (Curseforge API)', () => {
       expect(res1.name).toBe('Mod 101');
       expect(res2.name).toBe('Mod 102');
     }));
+
+    it('should not cancel in-flight getMods requests if another bufferDelay window elapses, and should resolve missing IDs to 404 AnnotatedError', fakeAsync(() => {
+      const service = TestBed.inject(CurseforgeService);
+      let resFound: any, resMissing: any;
+      firstValueFrom(service.getMod(101)).then((v) => (resFound = v));
+      firstValueFrom(service.getMod(999)).then((v) => (resMissing = v));
+
+      tick(service.bufferDelay);
+
+      const req = httpMock.expectOne((r) => r.url.endsWith('/v1/mods'));
+
+      // Wait another 3 seconds (past bufferDelay = 2000ms) before server responds
+      tick(3000);
+      expect(req.cancelled).toBeFalse();
+
+      req.flush({
+        data: [
+          {
+            id: 101,
+            name: 'Mod 101',
+            slug: 'mod-101',
+            dateCreated: new Date(),
+            dateModified: new Date(),
+            dateReleased: new Date()
+          }
+        ]
+      });
+
+      tick();
+      expect(resFound.name).toBe('Mod 101');
+      expect(service.isAnnotatedError(resMissing)).toBeTrue();
+      expect(resMissing.error.status).toBe(404);
+    }));
   });
 
   describe('Buffering / Coalescing of File By ID retrieval', () => {
     it('should coalesce multiple getFileFromIndex requests into a single batch query within configured delay', fakeAsync(() => {
       const service = TestBed.inject(CurseforgeService);
       let file1: any, file2: any;
-      service.getFileFromIndex(5001).subscribe(val => file1 = val);
-      service.getFileFromIndex(5002).subscribe(val => file2 = val);
+      service.getFileFromIndex(5001).subscribe((val) => (file1 = val));
+      service.getFileFromIndex(5002).subscribe((val) => (file2 = val));
 
       tick(service.bufferDelay);
 
       const mockFiles: Partial<CurseforgeFile>[] = [
-        { id: 5001, displayName: 'File 5001', fileName: 'f1.jar', fileDate: new Date(), releaseType: FileReleaseType.Release },
-        { id: 5002, displayName: 'File 5002', fileName: 'f2.jar', fileDate: new Date(), releaseType: FileReleaseType.Release }
+        {
+          id: 5001,
+          displayName: 'File 5001',
+          fileName: 'f1.jar',
+          fileDate: new Date(),
+          releaseType: FileReleaseType.Release
+        },
+        {
+          id: 5002,
+          displayName: 'File 5002',
+          fileName: 'f2.jar',
+          fileDate: new Date(),
+          releaseType: FileReleaseType.Release
+        }
       ];
 
       const req = httpMock.expectOne((r) => r.url.endsWith('/v1/mods/files'));
@@ -107,7 +188,7 @@ describe('CurseforgeService (Curseforge API)', () => {
       }
 
       let matchedFile: any;
-      service.getFileFromBuffer(buffer).subscribe(val => matchedFile = val);
+      service.getFileFromBuffer(buffer).subscribe((val) => (matchedFile = val));
 
       tick(service.bufferDelay);
 
@@ -127,9 +208,7 @@ describe('CurseforgeService (Curseforge API)', () => {
 
       req.flush({
         data: {
-          exactMatches: [
-            { id: 9999, file: mockFile as CurseforgeFile }
-          ]
+          exactMatches: [{ id: 9999, file: mockFile as CurseforgeFile }]
         }
       });
 
@@ -140,16 +219,19 @@ describe('CurseforgeService (Curseforge API)', () => {
   describe('searchMods', () => {
     it('should compile search criteria into query params', (done) => {
       const service = TestBed.inject(CurseforgeService);
-      service.searchMods({ classId: 6, searchFilter: 'jei' }).subscribe((result) => {
-        expect(result).toBeDefined();
-        done();
-      });
+      service
+        .searchMods({ classId: 6, searchFilter: 'jei' })
+        .subscribe((result) => {
+          expect(result).toBeDefined();
+          done();
+        });
 
-      const req = httpMock.expectOne((r) =>
-        r.url.startsWith(service.curseforgeAPIUrl + 'mods/search') &&
-        r.url.includes('gameId=432') &&
-        r.url.includes('classId=6') &&
-        r.url.includes('searchFilter=jei')
+      const req = httpMock.expectOne(
+        (r) =>
+          r.url.startsWith(service.curseforgeAPIUrl + 'mods/search') &&
+          r.url.includes('gameId=432') &&
+          r.url.includes('classId=6') &&
+          r.url.includes('searchFilter=jei')
       );
       expect(req.request.method).toBe('GET');
       req.flush({ data: { index: 0, count: 0, totalCount: 0, data: [] } });

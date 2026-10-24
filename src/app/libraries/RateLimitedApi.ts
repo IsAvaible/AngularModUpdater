@@ -12,7 +12,7 @@ export abstract class RateLimitedApi {
     return null; // Override this in subclasses to provide client-side rate limit info
   }
 
-  private _rateLimitTimer: NodeJS.Timeout | null = null;
+  private _rateLimitTimer: ReturnType<typeof setTimeout> | null = null;
   private _isClientSideRateLimit: boolean = false;
 
   // ===== PUBLIC API =====
@@ -161,18 +161,34 @@ export abstract class RateLimitedApi {
   /**
    * Handle rate limit exceeded error
    */
-  protected handleRateLimitExceeded(error: any): Observable<any> {
-    if (!this._rateLimit) {
-      return of({});
-    }
+  /**
+   * Tracks rate limit headers, logs to console, and triggers the rate limit notification dialog.
+   * Returns the seconds until reset.
+   */
+  protected recordRateLimitAndNotify(error: any): number {
+    this.trackRateLimit(error?.headers);
+    const secondsUntilReset = this.getRateLimitSecondsUntilReset() ?? 60;
     console.log(
-      `${this.apiName} rate limit reached. Wait for ${this.getRateLimitSecondsUntilReset()} seconds.`
+      `${this.apiName} rate limit reached. Wait for ${secondsUntilReset} seconds.`
     );
-
-    // Show user notification (you can customize this)
     this.showRateLimitNotification();
+    return secondsUntilReset;
+  }
 
-    return of({ error });
+  /**
+   * Handle rate limit exceeded error
+   */
+  protected handleRateLimitExceeded(error: any): Observable<any> {
+    const secondsUntilReset = this.recordRateLimitAndNotify(error);
+
+    return of({
+      error: {
+        message:
+          error?.message ||
+          `${this.apiName} rate limit exceeded. Please try again in ${secondsUntilReset} seconds.`,
+        status: error?.status || 429
+      }
+    });
   }
 
   /**
@@ -183,12 +199,12 @@ export abstract class RateLimitedApi {
       return;
     }
     const secondsUntilReset = this.getRateLimitSecondsUntilReset() ?? 60;
-    let timerInterval: NodeJS.Timeout | null = null;
+    let timerInterval: ReturnType<typeof setInterval> | null = null;
     await Swal.fire({
       position: 'top-start',
       icon: 'error',
       title: 'Rate Limit Exceeded',
-      html: `${this.apiName}s rate limit was reached, please try again in <b>${secondsUntilReset}</b> seconds.`,
+      html: `${this.apiName}'s rate limit was reached, please try again in <b>${secondsUntilReset}</b> seconds.`,
       showConfirmButton: false,
       timer: secondsUntilReset * 1000,
       timerProgressBar: true,

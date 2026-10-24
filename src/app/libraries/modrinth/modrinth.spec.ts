@@ -1,9 +1,19 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient, HttpHeaders } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting
+} from '@angular/common/http/testing';
 import { ModrinthService } from '../../services/modrinth.service';
-import { ModrinthProject, ModrinthVersion, ProjectType, Status } from './types.modrinth';
+import {
+  ModrinthProject,
+  ModrinthVersion,
+  ProjectType,
+  Status
+} from './types.modrinth';
 import { Loader } from '../../services/loader.service';
+import { firstValueFrom } from 'rxjs';
+import Swal from 'sweetalert2';
 
 describe('ModrinthService (Modrinth API)', () => {
   let httpMock: HttpTestingController;
@@ -32,8 +42,28 @@ describe('ModrinthService (Modrinth API)', () => {
     it('should query multiple projects by ID', (done) => {
       const service = TestBed.inject(ModrinthService);
       const mockProjects: Partial<ModrinthProject>[] = [
-        { id: 'proj1', slug: 'slug1', title: 'Proj 1', published: new Date(), updated: new Date(), approved: new Date(), status: Status.Approved, downloads: 100, project_type: ProjectType.Mod },
-        { id: 'proj2', slug: 'slug2', title: 'Proj 2', published: new Date(), updated: new Date(), approved: new Date(), status: Status.Approved, downloads: 200, project_type: ProjectType.Mod }
+        {
+          id: 'proj1',
+          slug: 'slug1',
+          title: 'Proj 1',
+          published: new Date(),
+          updated: new Date(),
+          approved: new Date(),
+          status: Status.Approved,
+          downloads: 100,
+          project_type: ProjectType.Mod
+        },
+        {
+          id: 'proj2',
+          slug: 'slug2',
+          title: 'Proj 2',
+          published: new Date(),
+          updated: new Date(),
+          approved: new Date(),
+          status: Status.Approved,
+          downloads: 200,
+          project_type: ProjectType.Mod
+        }
       ];
 
       service.getProjects(['proj1', 'proj2']).subscribe((result) => {
@@ -44,9 +74,14 @@ describe('ModrinthService (Modrinth API)', () => {
         done();
       });
 
-      const req = httpMock.expectOne((r) => r.url.endsWith('/projects') && r.params.has('ids'));
+      const req = httpMock.expectOne(
+        (r) => r.url.endsWith('/projects') && r.params.has('ids')
+      );
       expect(req.request.method).toBe('GET');
-      expect(JSON.parse(req.request.params.get('ids')!)).toEqual(['proj1', 'proj2']);
+      expect(JSON.parse(req.request.params.get('ids')!)).toEqual([
+        'proj1',
+        'proj2'
+      ]);
       req.flush(mockProjects as ModrinthProject[]);
     });
   });
@@ -55,22 +90,94 @@ describe('ModrinthService (Modrinth API)', () => {
     it('should coalesce multiple getProject requests into one batch request within configured delay', fakeAsync(() => {
       const service = TestBed.inject(ModrinthService);
       let res1: any, res2: any;
-      service.getProject('proj1').subscribe(val => res1 = val);
-      service.getProject('proj2').subscribe(val => res2 = val);
+      service.getProject('proj1').subscribe((val) => (res1 = val));
+      service.getProject('proj2').subscribe((val) => (res2 = val));
 
       // Advance time by the service's configured delay to resolve the buffer
       tick((service as any).bufferDelay);
 
       const mockProjects: Partial<ModrinthProject>[] = [
-        { id: 'proj1', slug: 'slug1', title: 'Proj 1', published: new Date(), updated: new Date(), approved: new Date(), status: Status.Approved, downloads: 100, project_type: ProjectType.Mod },
-        { id: 'proj2', slug: 'slug2', title: 'Proj 2', published: new Date(), updated: new Date(), approved: new Date(), status: Status.Approved, downloads: 200, project_type: ProjectType.Mod }
+        {
+          id: 'proj1',
+          slug: 'slug1',
+          title: 'Proj 1',
+          published: new Date(),
+          updated: new Date(),
+          approved: new Date(),
+          status: Status.Approved,
+          downloads: 100,
+          project_type: ProjectType.Mod
+        },
+        {
+          id: 'proj2',
+          slug: 'slug2',
+          title: 'Proj 2',
+          published: new Date(),
+          updated: new Date(),
+          approved: new Date(),
+          status: Status.Approved,
+          downloads: 200,
+          project_type: ProjectType.Mod
+        }
       ];
 
-      const req = httpMock.expectOne((r) => r.url.endsWith('/projects') && r.params.has('ids'));
+      const req = httpMock.expectOne(
+        (r) => r.url.endsWith('/projects') && r.params.has('ids')
+      );
       req.flush(mockProjects as ModrinthProject[]);
 
       expect(res1.title).toBe('Proj 1');
       expect(res2.title).toBe('Proj 2');
+    }));
+
+    it('should resolve missing projects to AnnotatedError instead of hanging firstValueFrom', fakeAsync(() => {
+      const service = TestBed.inject(ModrinthService);
+      let resolved: any;
+      firstValueFrom(service.getProject('missing-id')).then(
+        (val) => (resolved = val)
+      );
+
+      tick((service as any).bufferDelay);
+
+      const req = httpMock.expectOne(
+        (r) => r.url.endsWith('/projects') && r.params.has('ids')
+      );
+      req.flush([]); // API returns empty array for missing ID
+
+      tick();
+      expect(resolved).toBeDefined();
+      expect(service.isAnnotatedError(resolved)).toBeTrue();
+      expect(resolved.error.status).toBe(404);
+    }));
+
+    it('should resolve project even if queried with mismatched casing for slug', fakeAsync(() => {
+      const service = TestBed.inject(ModrinthService);
+      let resolved: any;
+      service.getProject('Sodium').subscribe((val) => (resolved = val));
+
+      tick((service as any).bufferDelay);
+
+      const req = httpMock.expectOne(
+        (r) => r.url.endsWith('/projects') && r.params.has('ids')
+      );
+      req.flush([
+        {
+          id: 'AANobbMI',
+          slug: 'sodium',
+          title: 'Sodium',
+          published: new Date(),
+          updated: new Date(),
+          approved: new Date(),
+          status: Status.Approved,
+          downloads: 1000,
+          project_type: ProjectType.Mod
+        }
+      ]);
+
+      tick();
+      expect(resolved).toBeDefined();
+      expect(service.isAnnotatedError(resolved)).toBeFalse();
+      expect(resolved.title).toBe('Sodium');
     }));
   });
 
@@ -78,35 +185,85 @@ describe('ModrinthService (Modrinth API)', () => {
     it('should request version list filtered by game version and loader', (done) => {
       const service = TestBed.inject(ModrinthService);
       const mockVersions: Partial<ModrinthVersion>[] = [
-        { id: 'v1', project_id: 'proj1', name: 'v1.0', version_number: '1.0.0', date_published: new Date(), files: [], loaders: [Loader.fabric] }
+        {
+          id: 'v1',
+          project_id: 'proj1',
+          name: 'v1.0',
+          version_number: '1.0.0',
+          date_published: new Date(),
+          files: [],
+          loaders: [Loader.fabric]
+        }
       ];
 
-      service.getVersionsFromId('proj1', '1.20.1', ['fabric']).subscribe((versions) => {
-        expect(Array.isArray(versions)).toBeTrue();
-        expect((versions as ModrinthVersion[])[0].id).toBe('v1');
-        done();
-      });
+      service
+        .getVersionsFromId('proj1', '1.20.1', ['fabric'])
+        .subscribe((versions) => {
+          expect(Array.isArray(versions)).toBeTrue();
+          expect((versions as ModrinthVersion[])[0].id).toBe('v1');
+          done();
+        });
 
-      const req = httpMock.expectOne((r) => r.url.endsWith('/project/proj1/version'));
+      const req = httpMock.expectOne((r) =>
+        r.url.endsWith('/project/proj1/version')
+      );
       expect(req.request.method).toBe('GET');
-      expect(JSON.parse(req.request.params.get('game_versions')!)).toEqual(['1.20.1']);
-      expect(JSON.parse(req.request.params.get('loaders')!)).toEqual(['fabric']);
+      expect(JSON.parse(req.request.params.get('game_versions')!)).toEqual([
+        '1.20.1'
+      ]);
+      expect(JSON.parse(req.request.params.get('loaders')!)).toEqual([
+        'fabric'
+      ]);
       req.flush(mockVersions as ModrinthVersion[]);
     });
+
+    it('should return a valid AnnotatedError (never empty object {}) when rate limit is exceeded even if _rateLimit was initially null', fakeAsync(() => {
+      spyOn(Swal, 'fire').and.returnValue(Promise.resolve({} as any));
+      const service = TestBed.inject(ModrinthService);
+      let result: any;
+
+      service
+        .getVersionsFromId('proj1', '1.20.1', ['fabric'])
+        .subscribe((res) => (result = res));
+
+      // Attempt 1 (initial) + 3 retries = 4 requests
+      for (let i = 0; i < 4; i++) {
+        const req = httpMock.expectOne((r) =>
+          r.url.endsWith('/project/proj1/version')
+        );
+        req.flush('Too Many Requests', {
+          status: 429,
+          statusText: 'Too Many Requests'
+        });
+        tick(65000);
+      }
+
+      expect(result).toBeDefined();
+      expect(service.isAnnotatedError(result)).toBeTrue();
+      expect(result.error.status).toBe(429);
+    }));
   });
 
   describe('Buffering / Coalescing of version requests by hash', () => {
     it('should coalesce multiple getVersionFromHash requests into a single POST query within configured delay', fakeAsync(() => {
       const service = TestBed.inject(ModrinthService);
       let res1: any, res2: any;
-      service.getVersionFromHash('hash1').subscribe(val => res1 = val);
-      service.getVersionFromHash('hash2').subscribe(val => res2 = val);
+      service.getVersionFromHash('hash1').subscribe((val) => (res1 = val));
+      service.getVersionFromHash('hash2').subscribe((val) => (res2 = val));
 
       tick((service as any).bufferDelay);
 
       const mockVersionsResponse = {
-        hash1: { id: 'v1', name: 'Version 1', date_published: new Date().toISOString() },
-        hash2: { id: 'v2', name: 'Version 2', date_published: new Date().toISOString() }
+        hash1: {
+          id: 'v1',
+          name: 'Version 1',
+          date_published: new Date().toISOString()
+        },
+        hash2: {
+          id: 'v2',
+          name: 'Version 2',
+          date_published: new Date().toISOString()
+        }
       };
 
       const req = httpMock.expectOne((r) => r.url.endsWith('/version_files'));
@@ -171,6 +328,58 @@ describe('ModrinthService (Modrinth API)', () => {
 
       tick(); // Let microtasks run
       expect(errorOccurred).toBeTrue();
+    }));
+
+    it('should safely release concurrency slot if factory throws synchronously', fakeAsync(() => {
+      const service = TestBed.inject(ModrinthService);
+      const queue = service as any;
+      const initialActive = queue.activeVersionRequests;
+
+      let errorCaught: any = null;
+      queue
+        .runWithConcurrencyLimit(() => {
+          throw new Error('Sync factory error');
+        })
+        .subscribe({
+          error: (err: any) => (errorCaught = err)
+        });
+
+      expect(errorCaught).toBeDefined();
+      expect(errorCaught.message).toBe('Sync factory error');
+      expect(queue.activeVersionRequests).toBe(initialActive);
+    }));
+
+    it('should retry on request timeout (TimeoutError)', fakeAsync(() => {
+      const service = TestBed.inject(ModrinthService);
+      let result: any;
+      service.getProjects(['proj1']).subscribe((val) => (result = val));
+
+      // First request hangs past 15s timeout
+      const req1 = httpMock.expectOne((r) => r.url.endsWith('/projects'));
+      tick(15001);
+      expect(req1.cancelled).toBeTrue();
+
+      // Advance past first retry backoff (~1000-1200ms)
+      tick(1500);
+
+      // Second request succeeds
+      const req2 = httpMock.expectOne((r) => r.url.endsWith('/projects'));
+      req2.flush([
+        {
+          id: 'proj1',
+          slug: 'slug1',
+          title: 'Recovered Proj',
+          published: new Date(),
+          updated: new Date(),
+          approved: new Date(),
+          status: Status.Approved,
+          downloads: 10,
+          project_type: ProjectType.Mod
+        }
+      ]);
+
+      tick();
+      expect(result['proj1'].title).toBe('Recovered Proj');
     }));
   });
 });

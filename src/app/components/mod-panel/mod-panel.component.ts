@@ -1,6 +1,7 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FilesService } from '../../services/files.service';
 import {
+  catchError,
   concatMap,
   delay,
   finalize,
@@ -89,6 +90,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
 
   files: File[] = [];
   processedFilesNames: string[] = [];
+  private transientErrorFiles = new Map<string, AnnotatedError>();
   toProcess: File[] = [];
   mcVersions: MinecraftVersion[] = [];
   loader!: Loader;
@@ -141,6 +143,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.invalidLoaderMods = [];
     this.unresolvedMods = [];
     this.processedFilesNames = [];
+    this.transientErrorFiles.clear();
     this.toProcess = [];
   }
 
@@ -202,14 +205,25 @@ export class ModPanelComponent implements OnInit, OnDestroy {
   /**
    * Handles request errors
    * @param file The file that caused the error
+   * @param error Optional annotated error details
    */
-  handleRequestError(file: File) {
-    // Remove the file from the processed and toProcess lists, so that it can be reprocessed and won't be removed from the files list
-    this.processedFilesNames.splice(
-      this.processedFilesNames.indexOf(file.name),
-      1
-    );
-    this.toProcess.splice(this.toProcess.indexOf(file), 1);
+  handleRequestError(file: File, error?: AnnotatedError) {
+    // Mark file as having a transient error so it won't be marked as processed and can be retried
+    if (error) {
+      this.transientErrorFiles.set(file.name, error);
+    } else {
+      this.transientErrorFiles.set(file.name, {
+        error: { message: 'Transient request failure', status: 500 }
+      });
+    }
+    const processedIdx = this.processedFilesNames.indexOf(file.name);
+    if (processedIdx !== -1) {
+      this.processedFilesNames.splice(processedIdx, 1);
+    }
+    const toProcessIdx = this.toProcess.indexOf(file);
+    if (toProcessIdx !== -1) {
+      this.toProcess.splice(toProcessIdx, 1);
+    }
   }
 
   /**
@@ -304,10 +318,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           !this.invalidLoaderMods.some((m) => m.file.name === file.name) &&
           !this.unavailableMods.some((m) => m.file.name === file.name)
         ) {
+          const transientError = this.transientErrorFiles.get(file.name);
           this.unresolvedMods.push({
             file,
             slug: undefined,
-            annotation: {
+            annotation: transientError ?? {
               error: {
                 status: 404,
                 message: 'Mod/Hash not found on Modrinth'
@@ -333,10 +348,11 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         !this.invalidLoaderMods.some((m) => m.file.name === file.name) &&
         !this.unavailableMods.some((m) => m.file.name === file.name)
       ) {
+        const transientError = this.transientErrorFiles.get(file.name);
         this.unresolvedMods.push({
           file,
           slug: undefined,
-          annotation: {
+          annotation: transientError ?? {
             error: {
               status: 404,
               message: 'Mod/Hash not found on Modrinth or Curseforge'
@@ -652,6 +668,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       await this.handleAnnotatedErrorSilent(targetVersionData, file);
       return null;
     }
+    if (!Array.isArray(targetVersionData)) {
+      await this.handleAnnotatedErrorSilent(
+        { error: { message: 'Invalid versions response', status: 500 } },
+        file
+      );
+      return null;
+    }
     return targetVersionData;
   }
 
@@ -682,6 +705,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         originalFile: original_file
       });
     }
+    if (original_file) {
+      this.transientErrorFiles.delete(original_file.name);
+    }
   }
 
   /**
@@ -694,6 +720,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       (im) => im.file != file
     );
     this.unavailableMods = this.unavailableMods.filter((um) => um.file != file);
+    this.transientErrorFiles.delete(file.name);
   }
 
   /**
@@ -904,7 +931,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         backdrop: 'rgba(0, 0, 0, 0.0)'
       });
     } else if (errorData.error.status !== 404) {
-      this.handleRequestError(file);
+      this.handleRequestError(file, errorData);
     }
     if (errorData.error.status !== 0) {
       this.unresolvedMods.push({ file, slug, annotation: errorData });
@@ -935,7 +962,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         backdrop: 'rgba(0, 0, 0, 0.0)'
       });
     } else if (errorData.error.status !== 404) {
-      this.handleRequestError(file);
+      this.handleRequestError(file, errorData);
     }
     // Note: We don't add to unresolvedMods here - that's handled by the caller after all APIs are tried
   }
@@ -949,24 +976,26 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     [boolean, Observable<boolean>, Observable<number>]
   > {
     this.filterProcessed(); // Remove already processed files
+    this.transientErrorFiles.clear();
     let mcVersion: MinecraftVersion = this.mcVersions.find((v) => v.selected)!; // Get the selected version
 
-    // Process JSON files first to extract modpack information
-    const jsonFiles = this.files.filter(
-      (file) => file.type == 'application/json'
-    );
+    // Process modpack manifests (.json). Manifests get all their mods updated, .mrpacks are updated as one.
+    const isJsonManifest = (file: File) =>
+      file.type === 'application/json' || file.name.endsWith('.json');
+
+    const modpackFiles = this.files.filter(isJsonManifest);
     const modHashes: Array<{
       hash: string;
       name: string;
       modpackFile: string;
     }> = [];
 
-    for (const jsonFile of jsonFiles) {
+    for (const modpackFile of modpackFiles) {
       try {
-        const fileBuffer = await this.readFileAsArrayBuffer(jsonFile);
+        const fileBuffer = await this.readFileAsArrayBuffer(modpackFile);
         if (!fileBuffer) {
           this.unresolvedMods.push({
-            file: jsonFile,
+            file: modpackFile,
             slug: undefined,
             annotation: {
               error: { status: 0, message: 'Could not read modpack file' }
@@ -975,10 +1004,13 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           continue;
         }
 
-        const metadata = await this.modrinth.parseMrpack(fileBuffer, true);
+        const isJson =
+          modpackFile.type === 'application/json' ||
+          modpackFile.name.endsWith('.json');
+        const metadata = await this.modrinth.parseMrpack(fileBuffer, isJson);
         if (!metadata || this.modrinth.isAnnotatedError(metadata)) {
           this.unresolvedMods.push({
-            file: jsonFile,
+            file: modpackFile,
             slug: undefined,
             annotation: {
               error: { status: 0, message: 'Could not parse modpack metadata' }
@@ -992,14 +1024,17 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           ...modpack.files.map((mod) => ({
             hash: mod.hashes['sha1'],
             name: mod.name || mod.path.split('/').pop() || 'Unknown mod',
-            modpackFile: modpack.name ?? jsonFile.name
+            modpackFile: modpack.name ?? modpackFile.name
           }))
         );
-        this.processedFilesNames.push(jsonFile.name);
+        this.processedFilesNames.push(modpackFile.name);
       } catch (error) {
-        console.error(`Error processing JSON file ${jsonFile.name}:`, error);
+        console.error(
+          `Error processing modpack file ${modpackFile.name}:`,
+          error
+        );
         this.unresolvedMods.push({
-          file: jsonFile,
+          file: modpackFile,
           slug: undefined,
           annotation: {
             error: { status: 0, message: 'Error processing modpack file' }
@@ -1008,9 +1043,9 @@ export class ModPanelComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Filter out processed JSON files
+    // Filter out processed modpack files
     this.toProcess = [
-      ...new Set(this.files.filter((file) => !file.name.endsWith('.json')))
+      ...new Set(this.files.filter((file) => !isJsonManifest(file)))
     ];
 
     const anyToProcess = this.toProcess.length > 0 || modHashes.length > 0;
@@ -1062,6 +1097,7 @@ export class ModPanelComponent implements OnInit, OnDestroy {
               item.hash
             )
           ).pipe(
+            catchError(() => of(false)),
             tap(() => processedCounter++),
             finalize(() => {
               const percent = processedCounter / totalToProcess;
@@ -1071,11 +1107,14 @@ export class ModPanelComponent implements OnInit, OnDestroy {
         } else {
           // Process regular file
           return from(this.processFile(item, mcVersion)).pipe(
+            catchError(() => of(false)),
             tap(() => processedCounter++),
             finalize(() => {
               const percent = processedCounter / totalToProcess;
               percent$.next(percent);
-              this.processedFilesNames.push(item.name);
+              if (!this.transientErrorFiles.has(item.name)) {
+                this.processedFilesNames.push(item.name);
+              }
             })
           );
         }
@@ -1134,53 +1173,74 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.loadingPercent = 0;
 
-    const [anyToProcess, initialFinished$, initialPercent$] =
-      await this.updateMods();
-    if (!anyToProcess) {
-      this.loading = false;
-      return;
-    }
-
-    this.finishedSubscription?.unsubscribe();
-    this.percentSubscription?.unsubscribe();
-
-    // assuming an average of 1-2 dependencies per mod batch
-    const dependencyProcessingWeight = 1.5 / this.files.length;
-    const fileProcessingWeight = 1 - dependencyProcessingWeight;
-
-    // Initial File Processing
-    this.percentSubscription = initialPercent$.subscribe((percent) => {
-      this.loadingPercent = percent * fileProcessingWeight;
-    });
-
-    this.finishedSubscription = initialFinished$
-      .pipe(
-        // Dependency Processing
-        concatMap(() => {
-          const mcVersion: MinecraftVersion = this.mcVersions.find(
-            (v) => v.selected
-          )!;
-          const { progress$, finished$ } = this.processDependencies(mcVersion);
-
-          // Switch from file progress to dependency progress
-          this.percentSubscription?.unsubscribe();
-          this.percentSubscription = progress$.subscribe((depPercent) => {
-            this.loadingPercent =
-              fileProcessingWeight + depPercent * dependencyProcessingWeight;
-          });
-
-          return finished$;
-        }),
-        tap(() => {
-          // Ensure the bar hits 100% before the delay
-          this.loadingPercent = 1;
-        }),
-        delay(200) // Small delay for UX to show 100%
-      )
-      .subscribe(() => {
+    try {
+      const [anyToProcess, initialFinished$, initialPercent$] =
+        await this.updateMods();
+      if (!anyToProcess) {
         this.loading = false;
-        this.percentSubscription?.unsubscribe();
+        return;
+      }
+
+      this.finishedSubscription?.unsubscribe();
+      this.percentSubscription?.unsubscribe();
+
+      // Allocate 85% of progress bar to primary file processing and 15% to dependency processing
+      // Guarantees progress weights are strictly within [0, 1] regardless of file count
+      const fileProcessingWeight = 0.85;
+      const dependencyProcessingWeight = 0.15;
+
+      // Initial File Processing
+      this.percentSubscription = initialPercent$.subscribe((percent) => {
+        this.loadingPercent = Math.min(
+          1,
+          Math.max(0, percent * fileProcessingWeight)
+        );
       });
+
+      this.finishedSubscription = initialFinished$
+        .pipe(
+          // Dependency Processing
+          concatMap(() => {
+            const mcVersion: MinecraftVersion = this.mcVersions.find(
+              (v) => v.selected
+            )!;
+            const { progress$, finished$ } =
+              this.processDependencies(mcVersion);
+
+            // Switch from file progress to dependency progress
+            this.percentSubscription?.unsubscribe();
+            this.percentSubscription = progress$.subscribe((depPercent) => {
+              this.loadingPercent = Math.min(
+                1,
+                Math.max(
+                  fileProcessingWeight,
+                  fileProcessingWeight + depPercent * dependencyProcessingWeight
+                )
+              );
+            });
+
+            return finished$;
+          }),
+          tap(() => {
+            // Ensure the bar hits 100% before the delay
+            this.loadingPercent = 1;
+          }),
+          delay(200), // Small delay for UX to show 100%
+          catchError((err) => {
+            console.error('Error during mod update process:', err);
+            return of(true);
+          }),
+          finalize(() => {
+            this.loading = false;
+            this.percentSubscription?.unsubscribe();
+          })
+        )
+        .subscribe();
+    } catch (err) {
+      console.error('Error starting mod update process:', err);
+      this.loading = false;
+      this.percentSubscription?.unsubscribe();
+    }
   }
 
   /**
@@ -1238,6 +1298,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
             return from(
               this.processDependencyWithProject(projectData, mcVersion)
             ).pipe(
+              catchError((err) => {
+                console.error(`Error processing dependency ${projectId}:`, err);
+                return of(null);
+              }),
               tap(() => {
                 processedCount++;
                 progress$.next(processedCount / totalDependencies);
@@ -1246,6 +1310,10 @@ export class ModPanelComponent implements OnInit, OnDestroy {
           }
         );
         return forkJoin(dependencyObservables);
+      }),
+      catchError((err) => {
+        console.error('Error fetching dependency projects:', err);
+        return of(true);
       }),
       map(() => true),
       tap(() => {
@@ -1263,44 +1331,51 @@ export class ModPanelComponent implements OnInit, OnDestroy {
     projectData: ModrinthProject,
     mcVersion: MinecraftVersion
   ) {
-    const dummyFile = new File([], `dependency: ${projectData.id}`);
+    try {
+      const dummyFile = new File([], `dependency: ${projectData.id}`);
 
-    if (this.availableMods.some((mod) => mod.project.id === projectData.id)) {
-      return;
-    }
+      if (this.availableMods.some((mod) => mod.project.id === projectData.id)) {
+        return;
+      }
 
-    // Only filter by mod loader for mods and modpacks; resource packs/shaders don't use mod loaders
-    const validLoaders = [ProjectType.Mod, ProjectType.ModPack].includes(
-      projectData.project_type
-    )
-      ? this.getValidLoaders()
-      : [];
+      // Only filter by mod loader for mods and modpacks; resource packs/shaders don't use mod loaders
+      const validLoaders = [ProjectType.Mod, ProjectType.ModPack].includes(
+        projectData.project_type
+      )
+        ? this.getValidLoaders()
+        : [];
 
-    const versionsData = await this.loadVersionsData(
-      projectData.id,
-      mcVersion.version,
-      validLoaders,
-      dummyFile
-    );
-
-    if (versionsData && versionsData.length > 0) {
-      const annotatedVersions = this.annotateVersionStatus(
-        null,
-        versionsData as ExtendedVersion[],
-        mcVersion.version
+      const versionsData = await this.loadVersionsData(
+        projectData.id,
+        mcVersion.version,
+        validLoaders,
+        dummyFile
       );
 
-      this.availableMods.push({
-        versions: annotatedVersions,
-        project: projectData,
-        isDependency: true
-      });
-    } else if (versionsData?.length === 0) {
-      this.unavailableMods.push({
-        file: dummyFile,
-        project_url: projectData.project_url,
-        project: projectData
-      });
+      if (versionsData && versionsData.length > 0) {
+        const annotatedVersions = this.annotateVersionStatus(
+          null,
+          versionsData as ExtendedVersion[],
+          mcVersion.version
+        );
+
+        this.availableMods.push({
+          versions: annotatedVersions,
+          project: projectData,
+          isDependency: true
+        });
+      } else if (versionsData?.length === 0) {
+        this.unavailableMods.push({
+          file: dummyFile,
+          project_url: projectData.project_url,
+          project: projectData
+        });
+      }
+    } catch (error) {
+      console.error(
+        `Unexpected error processing dependency ${projectData?.id}:`,
+        error
+      );
     }
   }
 

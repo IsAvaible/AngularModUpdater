@@ -7,10 +7,12 @@ import {
 } from './types.github';
 import {
   catchError,
+  defer,
   firstValueFrom,
   map,
   Observable,
   of,
+  shareReplay,
   switchMap,
   timeout
 } from 'rxjs';
@@ -30,6 +32,10 @@ export class GitHub extends BaseApiProvider {
   };
 
   private http = inject(HttpClient);
+  private releasesCache = new Map<
+    string,
+    Observable<GitHubRelease[] | AnnotatedError>
+  >();
 
   protected override get _rateLimitInfo(): RateLimitInfo {
     return {
@@ -71,7 +77,16 @@ export class GitHub extends BaseApiProvider {
    * Check if error is rate limit related (API-specific implementation)
    */
   protected override isRateLimitError(error: any): boolean {
-    return !!((error && error.status === 429) || error.status == 403);
+    if (!error) return false;
+    if (error.status === 429) return true;
+    if (error.status === 403) {
+      // GitHub emits 403 for rate limits with x-ratelimit-remaining: '0'
+      const remaining = error.headers?.get?.('x-ratelimit-remaining');
+      if (remaining === '0' || remaining === 0) return true;
+      const message = error.error?.message || error.message || '';
+      return /rate limit/i.test(message);
+    }
+    return false;
   }
 
   /**
@@ -82,26 +97,50 @@ export class GitHub extends BaseApiProvider {
   ): Observable<GitHubRelease[] | AnnotatedError> {
     const owner = config.owner;
     const repo = config.repo;
+    const cacheKey = `${owner}/${repo}`;
+
+    const cached = this.releasesCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const url = `${this.githubAPIUrl}/repos/${owner}/${repo}/releases`;
 
-    return this.http
-      .get<GitHubRelease[]>(url, {
-        headers: this.headers,
-        observe: 'response'
-      })
-      .pipe(
-        timeout(10000),
-        this.createRetryStrategy(3, 1000),
-        map((resp) => {
-          this.trackRateLimit(resp.headers);
-          return resp.body!.map((release) => ({
-            ...release,
-            created_at: release.created_at,
-            published_at: release.published_at
-          }));
-        }),
-        catchError(this.createErrorHandler<GitHubRelease[] | AnnotatedError>())
-      );
+    const request$ = defer(() =>
+      this.http
+        .get<GitHubRelease[]>(url, {
+          headers: this.headers,
+          observe: 'response'
+        })
+        .pipe(timeout(15000))
+    ).pipe(
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
+        return (resp.body ?? []).map((release) => ({
+          ...release,
+          created_at: release.created_at,
+          published_at: release.published_at
+        }));
+      }),
+      catchError((error) => {
+        this.releasesCache.delete(cacheKey);
+        return this.createErrorHandler<GitHubRelease[] | AnnotatedError>()(
+          error
+        );
+      }),
+      map((result) => {
+        // If the result resolved to an AnnotatedError, do not keep it in the cache
+        if (this.isAnnotatedError(result)) {
+          this.releasesCache.delete(cacheKey);
+        }
+        return result;
+      }),
+      shareReplay(1)
+    );
+
+    this.releasesCache.set(cacheKey, request$);
+    return request$;
   }
 
   /**
@@ -138,7 +177,7 @@ export class GitHub extends BaseApiProvider {
 
     return this.getReleases(matchingConfig).pipe(
       switchMap(async (releases) => {
-        if (this.isAnnotatedError(releases)) {
+        if (this.isAnnotatedError(releases) || !Array.isArray(releases)) {
           return null;
         }
 
@@ -213,7 +252,7 @@ export class GitHub extends BaseApiProvider {
     );
   }
 
-  private foundInfo = new Set();
+  private foundInfo = new Set<string>();
 
   private async findGithubInfoFromModrinth(
     config: GitHubRepoConfig,
@@ -223,15 +262,22 @@ export class GitHub extends BaseApiProvider {
     if (!modrinthPage || this.foundInfo.has(modrinthPage)) return;
     this.foundInfo.add(modrinthPage);
 
-    const modrinthProject = await firstValueFrom(
-      modrinth.getProject(modrinthPage)
-    );
-    if (modrinth.isAnnotatedError(modrinthProject)) return;
+    try {
+      const modrinthProject = await firstValueFrom(
+        modrinth.getProject(modrinthPage)
+      );
+      if (modrinth.isAnnotatedError(modrinthProject)) {
+        this.foundInfo.delete(modrinthPage);
+        return;
+      }
 
-    config.title = modrinthProject.title;
-    config.description = modrinthProject.description;
-    config.client = modrinthProject.client_side;
-    config.server = modrinthProject.server_side;
-    config.icon_url = modrinthProject.icon_url || undefined;
+      config.title = modrinthProject.title;
+      config.description = modrinthProject.description;
+      config.client = modrinthProject.client_side;
+      config.server = modrinthProject.server_side;
+      config.icon_url = modrinthProject.icon_url || undefined;
+    } catch {
+      this.foundInfo.delete(modrinthPage);
+    }
   }
 }

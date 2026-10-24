@@ -12,14 +12,14 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "~20.3.32",
-    "@angular/common": "~20.3.32",
-    "@angular/compiler": "~20.3.32",
-    "@angular/core": "~20.3.32",
-    "@angular/forms": "~20.3.32",
-    "@angular/platform-browser": "~20.3.32",
-    "@angular/platform-browser-dynamic": "~20.3.32",
-    "@angular/router": "~20.3.32",
+    "@angular/animations": "~20.3.34",
+    "@angular/common": "~20.3.34",
+    "@angular/compiler": "~20.3.34",
+    "@angular/core": "~20.3.34",
+    "@angular/forms": "~20.3.34",
+    "@angular/platform-browser": "~20.3.34",
+    "@angular/platform-browser-dynamic": "~20.3.34",
+    "@angular/router": "~20.3.34",
     "@vercel/analytics": "^1.2.2",
     "@vercel/speed-insights": "^1.0.10",
     "clipboard": "^2.0.11",
@@ -38,9 +38,9 @@
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
-    "@angular/build": "~20.3.37",
-    "@angular/cli": "~20.3.37",
-    "@angular/compiler-cli": "~20.3.32",
+    "@angular/build": "~20.3.41",
+    "@angular/cli": "~20.3.41",
+    "@angular/compiler-cli": "~20.3.34",
     "@types/file-saver": "^2.0.5",
     "@types/jasmine": "~4.3.0",
     "autoprefixer": "^10.4.14",
@@ -57,5 +57,9 @@
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^3.2.7",
     "typescript": "~5.8.3"
+  },
+  "overrides": {
+    "katex": "^0.19.1",
+    "postcss-selector-parser": "^7.1.7"
   }
 }

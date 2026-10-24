@@ -5,23 +5,12 @@ import {
   SearchCriterias,
   SearchResult
 } from './types.curseforge';
-import {
-  bufferTime,
-  catchError,
-  filter,
-  map,
-  Observable,
-  of,
-  share,
-  Subject,
-  switchMap,
-  take,
-  timeout
-} from 'rxjs';
+import { catchError, defer, map, Observable, of, timeout } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
 import compute_fingerprint from './fingerprint';
 import { AnnotatedError, BaseApiProvider } from '../BaseApiProvider';
+import { BatchQueue } from '../BatchQueue';
 
 /**
  * Wrapper around the Curseforge API.
@@ -49,36 +38,23 @@ export class Curseforge extends BaseApiProvider {
 
   public bufferDelay = 2000;
 
-  private getFileBuffer = new Subject<number>();
-  private getFileBufferResolver = this.getFileBuffer.pipe(
-    bufferTime(this.bufferDelay),
-    switchMap((fingerprints) => this.getFilesFromFingerprints(fingerprints)),
-    share()
+  private fileFingerprintQueue = new BatchQueue<number, CurseforgeFile>(
+    (fingerprints) => this.getFilesFromFingerprints(fingerprints),
+    () => this.bufferDelay
   );
 
-  private getModBuffer = new Subject<number>();
-  private getModBufferResolver = this.getModBuffer.pipe(
-    bufferTime(this.bufferDelay),
-    switchMap((ids) => this.getMods(ids)),
-    share()
+  private modQueue = new BatchQueue<number, CurseforgeMod>(
+    (ids) => this.getMods(ids),
+    () => this.bufferDelay
   );
 
-  private getFileByIdBuffer = new Subject<number>();
-  private getFileByIdBufferResolver = this.getFileByIdBuffer.pipe(
-    bufferTime(this.bufferDelay),
-    switchMap((fileIds) => this.getFilesById(fileIds)),
-    share()
+  private fileByIdQueue = new BatchQueue<number, CurseforgeFile>(
+    (fileIds) => this.getFilesById(fileIds),
+    () => this.bufferDelay
   );
-
-  protected setupBuffering() {
-    this.getFileBufferResolver.subscribe();
-    this.getModBufferResolver.subscribe();
-    this.getFileByIdBufferResolver.subscribe();
-  }
 
   constructor() {
     super();
-    this.setupBuffering();
   }
 
   private parseMod(mod: CurseforgeMod): CurseforgeMod {
@@ -100,30 +76,43 @@ export class Curseforge extends BaseApiProvider {
   public getMods(
     ids: number[]
   ): Observable<{ [id: number]: CurseforgeMod | AnnotatedError }> {
-    if (ids.length === 0) {
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length === 0) {
       return of({});
     }
 
-    return this.http
-      .post<
-        CurseforgeResponse<CurseforgeMod[]>
-      >(`${this.curseforgeAPIUrl}mods`, { modIds: ids }, { headers: this.headers, observe: 'response' })
-      .pipe(
-        timeout(10000),
-        this.createRetryStrategy(3, 1000),
-        map((resp) => {
-          let result: { [id: number]: CurseforgeMod | AnnotatedError } = {};
-          resp.body!.data.forEach((mod) => {
-            result[mod.id] = this.parseMod(mod);
-          });
-          return result;
-        }),
-        catchError(
-          this.createErrorHandler<{
-            [id: number]: CurseforgeMod | AnnotatedError;
-          }>()
+    return defer(() =>
+      this.http
+        .post<CurseforgeResponse<CurseforgeMod[]>>(
+          `${this.curseforgeAPIUrl}mods`,
+          { modIds: uniqueIds },
+          { headers: this.headers, observe: 'response' }
         )
-      );
+        .pipe(timeout(15000))
+    ).pipe(
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
+        const result: { [id: number]: CurseforgeMod | AnnotatedError } = {};
+        (resp.body?.data ?? []).forEach((mod) => {
+          result[mod.id] = this.parseMod(mod);
+        });
+        uniqueIds.forEach((id) => {
+          if (result[id] === undefined) {
+            result[id] = {
+              error: { message: 'Mod not found', status: 404 }
+            };
+          }
+        });
+        return result;
+      }),
+      catchError(
+        this.createBatchErrorHandler<number, CurseforgeMod>(
+          uniqueIds,
+          'Error fetching mods'
+        )
+      )
+    );
   }
 
   /**
@@ -131,13 +120,7 @@ export class Curseforge extends BaseApiProvider {
    * @param id Mod ID
    */
   public getMod(id: number): Observable<CurseforgeMod | AnnotatedError> {
-    this.getModBuffer.next(id);
-
-    return this.getModBufferResolver.pipe(
-      filter((mods) => mods[id] != undefined),
-      map((mods) => mods[id]),
-      take(1)
-    );
+    return this.modQueue.enqueue(id);
   }
 
   /**
@@ -147,47 +130,52 @@ export class Curseforge extends BaseApiProvider {
   private getFilesFromFingerprints(
     fingerprints: number[]
   ): Observable<{ [fingerprint: number]: CurseforgeFile | AnnotatedError }> {
-    if (fingerprints.length === 0) {
+    const uniqueFingerprints = [...new Set(fingerprints)];
+    if (uniqueFingerprints.length === 0) {
       return of({});
     }
 
-    return this.http
-      .post<
-        CurseforgeResponse<{
-          exactMatches: { file: CurseforgeFile; id: number }[];
-        }>
-      >(
-        `${this.curseforgeAPIUrl}fingerprints`,
-        { fingerprints: fingerprints },
-        { headers: this.headers, observe: 'response' }
-      )
-      .pipe(
-        timeout(10000),
-        this.createRetryStrategy(3, 1000),
-        map((resp) => {
-          let result: {
-            [fingerprint: number]: CurseforgeFile | AnnotatedError;
-          } = {};
-          fingerprints.forEach((fingerprint) => {
-            const res = resp.body!.data.exactMatches.find(
-              (item) => item.file.fileFingerprint === fingerprint
-            );
-            if (res) {
-              result[fingerprint] = res.file;
-            } else {
-              result[fingerprint] = {
-                error: { message: 'Not found', status: 404 }
-              };
-            }
-          });
-          return result;
-        }),
-        catchError(
-          this.createErrorHandler<{
-            [fingerprint: number]: CurseforgeFile | AnnotatedError;
-          }>()
+    return defer(() =>
+      this.http
+        .post<
+          CurseforgeResponse<{
+            exactMatches: { file: CurseforgeFile; id: number }[];
+          }>
+        >(
+          `${this.curseforgeAPIUrl}fingerprints`,
+          { fingerprints: uniqueFingerprints },
+          { headers: this.headers, observe: 'response' }
         )
-      );
+        .pipe(timeout(15000))
+    ).pipe(
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
+        const result: {
+          [fingerprint: number]: CurseforgeFile | AnnotatedError;
+        } = {};
+        const matches = resp.body?.data?.exactMatches ?? [];
+        uniqueFingerprints.forEach((fingerprint) => {
+          const res = matches.find(
+            (item) => item.file.fileFingerprint === fingerprint
+          );
+          if (res) {
+            result[fingerprint] = this.parseFile(res.file);
+          } else {
+            result[fingerprint] = {
+              error: { message: 'Not found', status: 404 }
+            };
+          }
+        });
+        return result;
+      }),
+      catchError(
+        this.createBatchErrorHandler<number, CurseforgeFile>(
+          uniqueFingerprints,
+          'Error fetching fingerprints'
+        )
+      )
+    );
   }
 
   /**
@@ -197,31 +185,44 @@ export class Curseforge extends BaseApiProvider {
   private getFilesById(
     fileIds: number[]
   ): Observable<{ [fileId: number]: CurseforgeFile | AnnotatedError }> {
-    if (fileIds.length === 0) {
+    const uniqueFileIds = [...new Set(fileIds)];
+    if (uniqueFileIds.length === 0) {
       return of({});
     }
 
-    return this.http
-      .post<
-        CurseforgeResponse<CurseforgeFile[]>
-      >(`${this.curseforgeAPIUrl}mods/files`, { fileIds: fileIds }, { headers: this.headers, observe: 'response' })
-      .pipe(
-        timeout(10000),
-        this.createRetryStrategy(3, 1000),
-        map((resp) => {
-          let result: { [fileId: number]: CurseforgeFile | AnnotatedError } =
-            {};
-          resp.body!.data.forEach((file) => {
-            result[file.id] = this.parseFile(file);
-          });
-          return result;
-        }),
-        catchError(
-          this.createErrorHandler<{
-            [fileId: number]: CurseforgeFile | AnnotatedError;
-          }>()
+    return defer(() =>
+      this.http
+        .post<CurseforgeResponse<CurseforgeFile[]>>(
+          `${this.curseforgeAPIUrl}mods/files`,
+          { fileIds: uniqueFileIds },
+          { headers: this.headers, observe: 'response' }
         )
-      );
+        .pipe(timeout(15000))
+    ).pipe(
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
+        const result: { [fileId: number]: CurseforgeFile | AnnotatedError } =
+          {};
+        (resp.body?.data ?? []).forEach((file) => {
+          result[file.id] = this.parseFile(file);
+        });
+        uniqueFileIds.forEach((fileId) => {
+          if (result[fileId] === undefined) {
+            result[fileId] = {
+              error: { message: 'File not found', status: 404 }
+            };
+          }
+        });
+        return result;
+      }),
+      catchError(
+        this.createBatchErrorHandler<number, CurseforgeFile>(
+          uniqueFileIds,
+          'Error fetching files by ID'
+        )
+      )
+    );
   }
 
   /**
@@ -232,13 +233,7 @@ export class Curseforge extends BaseApiProvider {
     buffer: ArrayBuffer
   ): Observable<CurseforgeFile | AnnotatedError> {
     const fingerprint = compute_fingerprint(new Uint8Array(buffer));
-    this.getFileBuffer.next(fingerprint);
-
-    return this.getFileBufferResolver.pipe(
-      filter((files) => files[fingerprint] != undefined),
-      map((files) => files[fingerprint]),
-      take(1)
-    );
+    return this.fileFingerprintQueue.enqueue(fingerprint);
   }
 
   /**
@@ -248,13 +243,7 @@ export class Curseforge extends BaseApiProvider {
   public getFileFromIndex(
     fileId: number
   ): Observable<CurseforgeFile | AnnotatedError> {
-    this.getFileByIdBuffer.next(fileId);
-
-    return this.getFileByIdBufferResolver.pipe(
-      filter((files) => files[fileId] != undefined),
-      map((files) => files[fileId]),
-      take(1)
-    );
+    return this.fileByIdQueue.enqueue(fileId);
   }
 
   /**
@@ -272,17 +261,21 @@ export class Curseforge extends BaseApiProvider {
       }
     });
 
-    return this.http
-      .get<CurseforgeResponse<SearchResult>>(url, {
-        headers: this.headers,
-        observe: 'response'
-      })
-      .pipe(
-        timeout(10000),
-        this.createRetryStrategy(3, 1000),
-        map((resp) => resp.body!.data),
-        catchError(this.createErrorHandler<SearchResult>())
-      );
+    return defer(() =>
+      this.http
+        .get<CurseforgeResponse<SearchResult>>(url, {
+          headers: this.headers,
+          observe: 'response'
+        })
+        .pipe(timeout(15000))
+    ).pipe(
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
+        return resp.body!.data;
+      }),
+      catchError(this.createErrorHandler<SearchResult>())
+    );
   }
 
   /**
@@ -295,15 +288,20 @@ export class Curseforge extends BaseApiProvider {
     modId: number,
     fileId: number
   ): Observable<string | AnnotatedError> {
-    return this.http
-      .get<
-        CurseforgeResponse<string>
-      >(`${this.curseforgeAPIUrl}mods/${modId}/files/${fileId}/changelog`, { headers: this.headers, observe: 'response' })
-      .pipe(
-        timeout(10000),
-        this.createRetryStrategy(3, 1000),
-        map((resp) => resp.body!.data),
-        catchError(this.createErrorHandler<string>())
-      );
+    return defer(() =>
+      this.http
+        .get<CurseforgeResponse<string>>(
+          `${this.curseforgeAPIUrl}mods/${modId}/files/${fileId}/changelog`,
+          { headers: this.headers, observe: 'response' }
+        )
+        .pipe(timeout(15000))
+    ).pipe(
+      this.createRetryStrategy(3, 1000),
+      map((resp) => {
+        this.trackRateLimit(resp.headers);
+        return resp.body!.data;
+      }),
+      catchError(this.createErrorHandler<string>())
+    );
   }
 }
